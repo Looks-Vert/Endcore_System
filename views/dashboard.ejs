@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dasbor Admin - Endcore System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        /* --- RESET & TEMA LIGHT MODERN ENDFIELD --- */
+        :root { 
+            --ef-yellow: #ffea00; 
+            --ef-yellow-dark: #d4c300;
+            --ef-dark: #111111;
+            --ef-bg: #f4f6f9;
+            --ef-card: #ffffff;
+            --ef-text: #2c3e50;
+            --ef-muted: #888888;
+            --ef-border: #e9ecef;
+            --ef-shadow: 0 8px 30px rgba(0,0,0,0.04);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--ef-bg); color: var(--ef-text); display: flex; height: 100vh; overflow: hidden; }
+
+        /* --- SIDEBAR KIRI --- */
+        .sidebar { 
+            width: 270px; background-color: var(--ef-card); border-right: 1px solid var(--ef-border); 
+            display: flex; flex-direction: column; z-index: 100; transition: 0.3s;
+            box-shadow: 2px 0 15px rgba(0,0,0,0.02);
+        }
+        .sidebar-header { 
+            height: 75px; display: flex; align-items: center; justify-content: center; 
+            border-bottom: 1px solid var(--ef-border); background: #fafbfc;
+        }
+        .sidebar-header h3 { 
+            font-size: 1.3rem; font-weight: 900; margin: 0; color: var(--ef-dark); 
+            display: flex; align-items: center; gap: 10px; letter-spacing: 1px;
+        }
+        .sidebar-header h3 i { color: var(--ef-yellow-dark); }
+        
+        .sidebar-menu { flex-grow: 1; padding: 25px 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px;}
+        .menu-btn { 
+            width: 100%; text-align: left; background: none; border: none; padding: 14px 20px; 
+            font-size: 0.95rem; font-weight: 600; color: #555; cursor: pointer; 
+            display: flex; align-items: center; gap: 15px; transition: 0.2s; border-radius: 8px;
+        }
+        .menu-btn i { font-size: 1.1rem; width: 22px; text-align: center; transition: 0.2s; }
+        .menu-btn:hover { color: var(--ef-dark); background-color: #f8f9fa; }
+        .menu-btn.active { 
+            color: var(--ef-dark); background: linear-gradient(90deg, #fffbeb 0%, #fff 100%); 
+            border-left: 5px solid var(--ef-yellow-dark); font-weight: 800; box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+        }
+        .menu-btn.active i { color: var(--ef-yellow-dark); }
+
+        .sidebar-footer { padding: 20px 15px; border-top: 1px solid var(--ef-border); }
+        .btn-mode { 
+            width: 100%; background: #fff; color: var(--ef-dark); border: 1px solid var(--ef-border); 
+            padding: 12px; border-radius: 8px; font-weight: bold; transition: 0.2s; 
+            display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 10px;
+        }
+        .btn-mode:hover { background: #f8f9fa; border-color: #ccc; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+        .btn-logout { 
+            width: 100%; background: #fff5f5; color: #dc3545; border: 1px solid #ffcaca; 
+            padding: 12px; border-radius: 8px; font-weight: bold; transition: 0.2s; 
+            display: flex; justify-content: center; align-items: center; gap: 8px; text-decoration: none;
+        }
+        .btn-logout:hover { background: #dc3545; color: #fff; box-shadow: 0 4px 10px rgba(220, 53, 69, 0.2); }
+
+        /* --- AREA KONTEN KANAN --- */
+        .main-content { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
+        
+        /* HEADER ATAS */
+        .top-header { 
+            height: 75px; background-color: var(--ef-card); border-bottom: 1px solid var(--ef-border); 
+            display: flex; justify-content: space-between; align-items: center; padding: 0 40px; z-index: 90;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.01);
+        }
+        .top-header h2 { font-size: 1.5rem; font-weight: 800; margin: 0; color: var(--ef-dark); }
+        
+        .user-profile { display: flex; align-items: center; gap: 15px; }
+        .user-info { text-align: right; line-height: 1.2; }
+        .user-name { font-size: 0.95rem; font-weight: 800; color: var(--ef-dark); }
+        .user-status { font-size: 0.75rem; color: #28a745; font-weight: 600; display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
+        .user-status::before { content: ''; display: inline-block; width: 6px; height: 6px; background-color: #28a745; border-radius: 50%; }
+        .user-avatar { 
+            width: 42px; height: 42px; background-color: #dc3545; color: #fff; 
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+            font-size: 1.2rem; font-weight: 900; text-transform: uppercase; box-shadow: 0 4px 10px rgba(220,53,69,0.3);
+        }
+
+        /* BODY KONTEN */
+        .content-body { padding: 40px; overflow-y: auto; flex-grow: 1; }
+        .content-body::-webkit-scrollbar { width: 8px; }
+        .content-body::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+        .admin-tab { display: none; animation: fadeIn 0.4s ease forwards; }
+        .admin-tab.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- KARTU & PANEL --- */
+        .ef-card { 
+            background: var(--ef-card); border-radius: 12px; border: 1px solid var(--ef-border); 
+            padding: 30px; box-shadow: var(--ef-shadow); margin-bottom: 30px;
+            position: relative; overflow: hidden;
+        }
+        .ef-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, var(--ef-yellow-dark), transparent); }
+        .card-header-custom { 
+            display: flex; justify-content: space-between; align-items: center; 
+            margin-bottom: 25px; border-bottom: 1px solid #f0f0f0; padding-bottom: 15px; 
+        }
+        .card-title-custom { font-size: 1.15rem; font-weight: 800; color: var(--ef-dark); margin: 0; }
+
+        /* DASHBOARD SUMMARY CARDS */
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; margin-bottom: 30px; }
+        .sum-card { 
+            background: var(--ef-card); border-radius: 12px; border: 1px solid var(--ef-border); 
+            padding: 25px; display: flex; align-items: center; gap: 20px; box-shadow: var(--ef-shadow);
+            transition: 0.3s;
+        }
+        .sum-card:hover { transform: translateY(-5px); box-shadow: 0 12px 35px rgba(0,0,0,0.06); }
+        .sum-icon { width: 65px; height: 65px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; }
+        .bg-blue { background: #e3f2fd; color: #0d6efd; }
+        .bg-green { background: #e8f5e9; color: #198754; }
+        .bg-orange { background: #fff3cd; color: #ffc107; }
+        .sum-info p { margin: 0; font-size: 0.9rem; color: var(--ef-muted); font-weight: 600; margin-bottom: 5px;}
+        .sum-info h4 { margin: 0; font-size: 1.8rem; font-weight: 900; color: var(--ef-dark); }
+
+        /* FORM INPUTS PENGATURAN BARU */
+        .form-label { font-size: 0.85rem; font-weight: 700; color: var(--ef-dark); margin-bottom: 8px; }
+        .form-control { 
+            background-color: #f8f9fa; border: 1px solid #ced4da; border-radius: 8px; 
+            padding: 12px 15px; font-size: 0.9rem; color: var(--ef-text); transition: 0.3s;
+        }
+        .form-control:focus { background-color: #fff; border-color: var(--ef-dark); box-shadow: 0 0 0 3px rgba(212, 195, 0, 0.2); }
+        .btn-submit { 
+            background: var(--ef-dark); color: #fff; border: none; border-radius: 8px; 
+            padding: 14px; font-weight: bold; width: 100%; transition: 0.3s; margin-top: 15px;
+            font-size: 0.95rem; letter-spacing: 0.5px;
+        }
+        .btn-submit:hover { background: var(--ef-yellow-dark); color: #000; box-shadow: 0 5px 15px rgba(212, 195, 0, 0.3); }
+
+        /* TABLE STYLE ELEGAN */
+        .table-custom { width: 100%; border-collapse: separate; border-spacing: 0; }
+        .table-custom th { 
+            background: #fafbfc; color: var(--ef-muted); font-size: 0.75rem; font-weight: 800; 
+            text-transform: uppercase; padding: 15px; border-bottom: 1px solid var(--ef-border); 
+            border-top: 1px solid var(--ef-border);
+        }
+        .table-custom td { padding: 18px 15px; font-size: 0.9rem; color: var(--ef-text); border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+        .table-custom tr { transition: 0.2s; }
+        .table-custom tr:hover td { background-color: #f8f9fa; }
+        
+        .badge-role { padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; }
+        .bg-admin { background: #e3f2fd; color: #0d6efd; border: 1px solid #b6effb; }
+        .bg-user { background: #f8f9fa; color: #6c757d; border: 1px solid #ddd; }
+        .bg-info-custom { background: #e0f2f1; color: #2e7d32; border: 1px solid #c8e6c9;}
+        
+        .action-icon { 
+            cursor: pointer; margin: 0 5px; font-size: 1rem; transition: 0.2s; 
+            text-decoration: none; width: 32px; height: 32px; display: inline-flex; 
+            align-items: center; justify-content: center; border-radius: 6px; background: #f4f5f7;
+        }
+        .action-icon.edit { color: #0d6efd; }
+        .action-icon.delete { color: #dc3545; }
+        .action-icon:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); background: #fff; }
+
+        .log-item { background: #fff; border: 1px solid #f0f0f0; border-radius: 8px; padding: 18px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.01);}
+        .log-header { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--ef-muted); margin-bottom: 8px; }
+        .log-title { font-weight: 800; color: var(--ef-dark); font-size: 1rem; margin-bottom: 5px; }
+        .log-status { background: #e8f5e9; color: #198754; font-size: 0.7rem; padding: 4px 10px; border-radius: 6px; font-weight: bold; }
+
+        /* Two Col Layout Helper */
+        .two-col-layout { display: grid; grid-template-columns: 400px 1fr; gap: 30px; align-items: start; }
+        @media (max-width: 1200px) { .two-col-layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+    <!-- FUNGSI EJS PINTAR UTK RENDER GAMBAR -->
+    <% 
+        function renderUrlAdmin(url, type, name) {
+            if (!url || url.trim() === '') {
+                if (type === 'avatar') return 'https://placehold.co/100x100/f4f5f7/000?text=' + name.charAt(0);
+                return 'https://placehold.co/800x1000/transparent/eee?text=' + name;
+            }
+            if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('/')) return url;
+            return '/' + type + '/' + url;
+        }
+    %>
+
+    <!-- SIDEBAR KIRI -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h3><i class="fas fa-layer-group"></i> ENDCORE</h3>
+        </div>
+        <div class="sidebar-menu">
+            <button class="menu-btn active" onclick="switchTab('Dasbor Utama', 'tab-dashboard', this)">
+                <i class="fas fa-chart-pie"></i> Ringkasan Dasbor
+            </button>
+            <button class="menu-btn" onclick="switchTab('Kelola Data Operator', 'tab-chars', this)">
+                <i class="fas fa-id-badge"></i> Kelola Operator
+            </button>
+            <button class="menu-btn" onclick="switchTab('Kelola Hak Akses Pengguna', 'tab-users', this)">
+                <i class="fas fa-users"></i> Kelola Pengguna
+            </button>
+            <button class="menu-btn" onclick="switchTab('Manajemen Tier List', 'tab-tier', this)">
+                <i class="fas fa-sort-amount-up"></i> Kelola Tier List
+            </button>
+            <button class="menu-btn" onclick="switchTab('Publikasi Berita', 'tab-news', this)">
+                <i class="fas fa-newspaper"></i> Kelola Berita
+            </button>
+            <button class="menu-btn" onclick="switchTab('Arsip Lore Dunia', 'tab-lore', this)">
+                <i class="fas fa-globe-asia"></i> Kelola Lore Dunia
+            </button>
+            <!-- TAB BARU: REVIEW DAN TOP-UP -->
+            <button class="menu-btn" onclick="switchTab('Log Ulasan Pengguna', 'tab-reviews', this)">
+                <i class="fas fa-comments"></i> Kelola Ulasan
+            </button>
+            <button class="menu-btn" onclick="switchTab('Pusat Top-Up', 'tab-topup', this)">
+                <i class="fas fa-gem"></i> Kelola Top-Up
+            </button>
+        </div>
+        <div class="sidebar-footer">
+            <button class="btn-mode" onclick="window.location.href='/'">
+                <i class="fas fa-desktop"></i> Mode Frontend
+            </button>
+            <a href="/logout" class="btn-logout"><i class="fas fa-sign-out-alt"></i> Keluar Sistem</a>
+        </div>
+    </aside>
+
+    <!-- AREA KONTEN KANAN -->
+    <main class="main-content">
+        
+        <!-- TOP HEADER -->
+        <header class="top-header">
+            <h2 id="pageTitle">Dasbor Utama</h2>
+            <div class="user-profile">
+                <div class="user-info">
+                    <div class="user-name"><%= locals.user ? locals.user.username : 'Admin' %></div>
+                    <div class="user-status">Online</div>
+                </div>
+                <div class="user-avatar"><%= locals.user ? locals.user.username.charAt(0) : 'A' %></div>
+            </div>
+        </header>
+
+        <!-- KONTEN UTAMA -->
+        <div class="content-body">
+
+            <!-- ========================================== -->
+            <!-- TAB 1: DASHBOARD RINGKASAN -->
+            <!-- ========================================== -->
+            <div id="tab-dashboard" class="admin-tab active">
+                
+                <div class="summary-grid">
+                    <div class="sum-card">
+                        <div class="sum-icon bg-blue"><i class="fas fa-users"></i></div>
+                        <div class="sum-info">
+                            <p>Total Pengguna</p>
+                            <h4><%= locals.usersList ? locals.usersList.length : 0 %></h4>
+                        </div>
+                    </div>
+                    <div class="sum-card">
+                        <div class="sum-icon bg-green"><i class="fas fa-id-badge"></i></div>
+                        <div class="sum-info">
+                            <p>Operator Terdaftar</p>
+                            <h4><%= locals.chars ? chars.length : 0 %></h4>
+                        </div>
+                    </div>
+                    <div class="sum-card">
+                        <div class="sum-icon bg-orange"><i class="fas fa-heart"></i></div>
+                        <div class="sum-info">
+                            <p>Total Interaksi (Like)</p>
+                            <h4><%- locals.chars ? chars.reduce((sum, c) => sum + (c.total_likes || 0), 0) : 0 %></h4>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-xl-8">
+                        <div class="ef-card h-100">
+                            <div class="card-header-custom">
+                                <h3 class="card-title-custom">Grafik Penilaian Metrik Operator</h3>
+                            </div>
+                            <div style="position: relative; height: 350px; width: 100%;">
+                                <canvas id="likeChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-4">
+                        <div class="ef-card h-100">
+                            <div class="card-header-custom">
+                                <h3 class="card-title-custom">Aktivitas Data Terbaru</h3>
+                                <button class="btn btn-sm btn-light border fw-bold text-dark" onclick="location.reload()"><i class="fas fa-sync-alt"></i></button>
+                            </div>
+                            
+                            <% if(locals.chars && chars.length > 0) { %>
+                                <% chars.slice(-3).reverse().forEach(char => { %>
+                                    <div class="log-item">
+                                        <div class="log-header">
+                                            <span><i class="fas fa-database me-1"></i> Sistem Basis Data</span>
+                                            <span class="log-status">Sukses</span>
+                                        </div>
+                                        <div class="log-title"><%= char.nama %> - <%= char.faksi %></div>
+                                        <div class="text-muted" style="font-size: 0.75rem;">ID: #<%= char.id_char %> | Elemen: <%= char.elements %></div>
+                                        <div class="mt-2 text-dark fw-bold text-center border-top pt-2" style="font-size: 0.8rem;">Data Selesai Diproses</div>
+                                    </div>
+                                <% }) %>
+                            <% } else { %>
+                                <p class="text-muted text-center mt-4">Belum ada aktivitas.</p>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- TAB 2: KELOLA PENGGUNA -->
+            <!-- ========================================== -->
+            <div id="tab-users" class="admin-tab">
+                <div class="two-col-layout">
+                    <div class="ef-card">
+                        <h3 class="card-title-custom mb-4"><i class="fas fa-user-plus me-2"></i> Tambah Pengguna Baru</h3>
+                        <form action="/register" method="POST">
+                            <div class="mb-3"><label class="form-label">Nama Lengkap (Username)</label><input type="text" name="username" class="form-control" required></div>
+                            <div class="mb-3"><label class="form-label">Email Valid</label><input type="email" name="email" class="form-control" required></div>
+                            <div class="mb-3"><label class="form-label">Password Akses</label><input type="password" name="password" class="form-control" required></div>
+                            <div class="mb-4">
+                                <label class="form-label">Peran (Role)</label>
+                                <select class="form-control" disabled><option>Pelanggan (User)</option></select>
+                            </div>
+                            <button type="submit" class="btn-submit">Daftarkan Akun</button>
+                        </form>
+                    </div>
+
+                    <div class="ef-card">
+                        <div class="card-header-custom">
+                            <h3 class="card-title-custom">Daftar Pengguna Terdaftar</h3>
+                            <button class="btn btn-sm btn-light border text-dark fw-bold" onclick="location.reload()"><i class="fas fa-sync-alt"></i></button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table-custom">
+                                <thead>
+                                    <tr><th>ID</th><th>Nama Lengkap</th><th>Email</th><th>Password</th><th>Peran</th><th class="text-center">Aksi</th></tr>
+                                </thead>
+                                <tbody>
+                                    <% if(locals.usersList && locals.usersList.length > 0) { usersList.forEach(u => { %>
+                                        <tr>
+                                            <td class="text-muted">U-<%= String(u.id).padStart(4, '0') %></td>
+                                            <td class="fw-bold text-dark"><%= u.username %></td>
+                                            <td><%= u.email %></td>
+                                            <td class="text-muted">********</td>
+                                            <td>
+                                                <% if(u.role === 'admin') { %><span class="badge-role bg-admin">Admin</span><% } else { %><span class="badge-role bg-user">Pelanggan</span><% } %>
+                                            </td>
+                                            <td class="text-center">
+                                                <% if(u.role !== 'admin') { %>
+                                                    <a href="/delete-user/<%= u.id %>" class="action-icon delete" title="Hapus Pengguna" onclick="return confirm('Hapus user ini secara permanen?');"><i class="fas fa-trash"></i></a>
+                                                <% } else { %>
+                                                    <span class="text-muted" style="font-size:0.7rem;">Protected</span>
+                                                <% } %>
+                                            </td>
+                                        </tr>
+                                    <% }) } else { %>
+                                        <tr><td colspan="6" class="text-center text-muted">Data pengguna kosong.</td></tr>
+                                    <% } %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- TAB 3: KELOLA OPERATOR -->
+            <!-- ========================================== -->
+            <div id="tab-chars" class="admin-tab">
+                <div class="two-col-layout">
+                    
+                    <div class="ef-card">
+                        <h3 class="card-title-custom mb-4"><i class="fas fa-file-import me-2"></i> Input Operator Baru</h3>
+                        <form action="/add-char" method="POST" enctype="multipart/form-data">
+                            <div class="row g-3">
+                                <div class="col-12"><label class="form-label">Nama Karakter</label><input type="text" name="nama" class="form-control" required></div>
+                                <div class="col-6"><label class="form-label">Role</label><input type="text" name="role" class="form-control"></div>
+                                <div class="col-6"><label class="form-label">Elemen</label><input type="text" name="elements" class="form-control"></div>
+                                <div class="col-6"><label class="form-label">Faksi / Squad</label><input type="text" name="faksi" class="form-control"></div>
+                                <div class="col-6"><label class="form-label">Ras</label><input type="text" name="ras" class="form-control"></div>
+                                
+                                <div class="col-12">
+                                    <label class="form-label text-primary"><i class="fas fa-user-circle me-1"></i> Avatar Gambar</label>
+                                    <div class="p-3 border rounded bg-light">
+                                        <label class="small text-muted fw-bold mb-1">Opsi 1: Upload File (.png/.jpg)</label>
+                                        <input type="file" name="avatar_file" class="form-control mb-2" accept="image/*">
+                                        <label class="small text-muted fw-bold mb-1">Opsi 2: Gunakan URL Internet</label>
+                                        <input type="text" name="avatar_url" class="form-control" placeholder="https://...">
+                                    </div>
+                                </div>
+
+                                <div class="col-12">
+                                    <label class="form-label text-primary"><i class="fas fa-image me-1"></i> Splash Art Layar Penuh</label>
+                                    <div class="p-3 border rounded bg-light">
+                                        <label class="small text-muted fw-bold mb-1">Opsi 1: Upload File (.png/.jpg)</label>
+                                        <input type="file" name="splash_file" class="form-control mb-2" accept="image/*">
+                                        <label class="small text-muted fw-bold mb-1">Opsi 2: Gunakan URL Internet</label>
+                                        <input type="text" name="splash_url" class="form-control" placeholder="https://...">
+                                    </div>
+                                </div>
+
+                                <div class="col-12"><label class="form-label">Deskripsi Lore / Sejarah</label><textarea name="deskripsi" class="form-control" rows="4"></textarea></div>
+                                <div class="col-12 mt-3"><button type="submit" class="btn-submit">Simpan Operator ke Database</button></div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="ef-card">
+                        <div class="card-header-custom">
+                            <h3 class="card-title-custom">Database Master Operator</h3>
+                            <button class="btn btn-sm btn-light border fw-bold text-dark" onclick="location.reload()"><i class="fas fa-sync-alt"></i></button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table-custom">
+                                <thead>
+                                    <tr><th>Profil</th><th>Data Operator</th><th>Faksi & Role</th><th class="text-center">Aksi</th></tr>
+                                </thead>
+                                <tbody>
+                                    <% if(locals.chars && chars.length > 0) { chars.forEach(char => { %>
+                                        <tr>
+                                            <td>
+                                                <img src="<%= renderUrlAdmin(char.avatar_url, 'avatar', char.nama) %>" style="width: 50px; height: 50px; border-radius: 8px; border: 1px solid #ddd; object-fit: cover;">
+                                            </td>
+                                            <td>
+                                                <div class="fw-bold text-dark" style="font-size:1.05rem;"><%= char.nama %></div>
+                                                <div class="text-muted" style="font-size:0.75rem;">ID: #<%= String(char.id_char).padStart(3, '0') %></div>
+                                            </td>
+                                            <td>
+                                                <div class="mb-1 fw-bold text-muted" style="font-size:0.8rem;"><%= char.faksi %></div>
+                                                <span class="badge-role bg-info-custom"><%= char.role %></span> <span class="badge-role bg-user"><%= char.elements %></span>
+                                            </td>
+                                            <td class="text-center">
+                                                <i class="fas fa-pen action-icon edit" title="Edit Data" data-bs-toggle="modal" data-bs-target="#editCharModal-<%= char.id_char %>"></i>
+                                                <a href="/delete-char/<%= char.id_char %>" class="action-icon delete" title="Hapus Data" onclick="return confirm('Hapus operator ini permanen?');"><i class="fas fa-trash"></i></a>
+                                            </td>
+                                        </tr>
+                                    <% }) } else { %>
+                                        <tr><td colspan="4" class="text-center text-muted py-5">Belum ada data operator terdaftar.</td></tr>
+                                    <% } %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- TAB 4: KELOLA TIER LIST -->
+            <!-- ========================================== -->
+            <div id="tab-tier" class="admin-tab">
+                <div class="two-col-layout">
+                    <div class="ef-card">
+                        <h3 class="card-title-custom mb-4"><i class="fas fa-medal me-2"></i> Perbarui Rank Tier</h3>
+                        <form action="/update-tier" method="POST">
+                            <div class="mb-3">
+                                <label class="form-label">Pilih Operator Target</label>
+                                <select name="id_char" class="form-control" required>
+                                    <% if(locals.chars) { chars.forEach(c => { %>
+                                        <option value="<%= c.id_char %>"><%= c.nama %> (Tier Saat ini: <%= c.tier || '-' %>)</option>
+                                    <% }) } %>
+                                </select>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label">Tetapkan Tier Baru</label>
+                                <select name="tier" class="form-control" required>
+                                    <option value="SS">Tier SS (Overpowered)</option>
+                                    <option value="S">Tier S (Excellent)</option>
+                                    <option value="A">Tier A (Good)</option>
+                                    <option value="B">Tier B (Average)</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn-submit" style="background:#ffc107; color:#000;">Update Status Tier</button>
+                        </form>
+                    </div>
+
+                    <div class="ef-card">
+                        <div class="card-header-custom"><h3 class="card-title-custom">Status Tier Global Saat Ini</h3></div>
+                        <div class="table-responsive">
+                            <table class="table-custom">
+                                <thead><tr><th>Nama Operator</th><th>Faksi</th><th>Rank Tier</th></tr></thead>
+                                <tbody>
+                                    <% if(locals.chars) { chars.forEach(c => { %>
+                                        <tr>
+                                            <td class="fw-bold"><%= c.nama %></td>
+                                            <td><%= c.faksi %></td>
+                                            <td><% if(c.tier === 'SS') { %><span class="badge-role bg-danger text-white px-3">SS</span><% } else if(c.tier === 'S') { %><span class="badge-role bg-warning text-dark px-3">S</span><% } else if(c.tier === 'A') { %><span class="badge-role bg-primary text-white px-3">A</span><% } else if(c.tier === 'B') { %><span class="badge-role bg-success text-white px-3">B</span><% } else { %><span class="badge-role bg-user">Belum Diatur</span><% } %></td>
+                                        </tr>
+                                    <% }) } %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- TAB 5: KELOLA BERITA -->
+            <!-- ========================================== -->
+            <div id="tab-news" class="admin-tab">
+                <div class="two-col-layout">
+                    <div class="ef-card">
+                        <h3 class="card-title-custom mb-4"><i class="fas fa-edit me-2"></i> Buat Berita Baru</h3>
+                        <form action="/add-news" method="POST" enctype="multipart/form-data">
+                            <div class="mb-3"><label class="form-label">Judul Berita</label><input type="text" name="judul" class="form-control" required></div>
+                            <div class="mb-3"><label class="form-label">Tanggal Publikasi</label><input type="date" name="tanggal" class="form-control" required></div>
+                            <div class="mb-3">
+                                <label class="form-label">Cover Gambar</label>
+                                <div class="p-3 border rounded bg-light">
+                                    <label class="small text-muted fw-bold mb-1">Opsi 1: Upload File (.png/.jpg)</label>
+                                    <input type="file" name="gambar_file" class="form-control mb-2" accept="image/*">
+                                    <label class="small text-muted fw-bold mb-1">Opsi 2: Gunakan URL Internet</label>
+                                    <input type="text" name="gambar_url" class="form-control" placeholder="https://...">
+                                </div>
+                            </div>
+                            <div class="mb-3"><label class="form-label">Isi Konten Berita</label><textarea name="konten" class="form-control" rows="5" required></textarea></div>
+                            <button type="submit" class="btn-submit" style="background:#0dcaf0; color:#000;">Publish Artikel</button>
+                        </form>
+                    </div>
+                    <div class="ef-card">
+                        <div class="card-header-custom"><h3 class="card-title-custom">Arsip Berita & Pengumuman</h3></div>
+                        <div class="table-responsive">
+                            <table class="table-custom">
+                                <thead><tr><th>ID</th><th>Judul Utama</th><th>Tanggal</th><th class="text-center">Aksi</th></tr></thead>
+                                <tbody>
+                                    <% if(locals.newsList && locals.newsList.length > 0) { newsList.forEach(news => { %>
+                                        <tr>
+                                            <td class="text-muted">#<%= news.id %></td>
+                                            <td class="fw-bold"><%= news.judul %></td>
+                                            <td><%= news.tanggal %></td>
+                                            <td class="text-center" style="white-space:nowrap;">
+                                                <i class="fas fa-pen action-icon edit" title="Edit Berita" data-bs-toggle="modal" data-bs-target="#editNewsModal-<%= news.id %>"></i>
+                                                <a href="/delete-news/<%= news.id %>" class="action-icon delete" title="Hapus Berita" onclick="return confirm('Hapus berita ini permanen?');"><i class="fas fa-trash"></i></a>
+                                            </td>
+                                        </tr>
+                                    <% }) } else { %><tr><td colspan="4" class="text-center text-muted">Belum ada berita</td></tr><% } %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- TAB 6: KELOLA LORE DUNIA -->
+            <!-- ========================================== -->
+            <div id="tab-lore" class="admin-tab">
+                <div class="two-col-layout">
+                    <div class="ef-card">
+                        <h3 class="card-title-custom mb-4"><i class="fas fa-book me-2"></i> Catat Lore & Area Baru</h3>
+                        <form action="/add-lore" method="POST" enctype="multipart/form-data">
+                            <div class="mb-3"><label class="form-label">Nama Region / Lokasi</label><input type="text" name="region" class="form-control" required></div>
+                            <div class="mb-3"><label class="form-label">Tipe Visual Media</label><select name="media_tipe" class="form-control"><option value="image">Gambar / Foto</option><option value="youtube">Link Video YouTube</option></select></div>
+                            <div class="mb-3">
+                                <label class="form-label">Media File / Link</label>
+                                <div class="p-3 border rounded bg-light">
+                                    <label class="small text-muted fw-bold mb-1">Opsi 1: Upload File Gambar (.png/.jpg)</label>
+                                    <input type="file" name="media_file" class="form-control mb-2" accept="image/*">
+                                    <label class="small text-muted fw-bold mb-1">Opsi 2: Gunakan URL / Link Youtube</label>
+                                    <input type="text" name="media_url" class="form-control" placeholder="https://...">
+                                </div>
+                            </div>
+                            <div class="mb-3"><label class="form-label">Dokumen Sejarah</label><textarea name="sejarah" class="form-control" rows="5" required></textarea></div>
+                            <button type="submit" class="btn-submit bg-dark">Simpan ke Arsip Lore</button>
+                        </form>
+                    </div>
+                    <div class="ef-card">
+                        <div class="card-header-custom"><h3 class="card-title-custom">Database Area Lore Terdaftar</h3></div>
+                        <div class="table-responsive">
+                            <table class="table-custom">
+                                <thead><tr><th>Region Akses</th><th>Tipe Render</th><th class="text-center">Aksi</th></tr></thead>
+                                <tbody>
+                                    <% if(locals.loreList && locals.loreList.length > 0) { loreList.forEach(lore => { %>
+                                        <tr>
+                                            <td class="fw-bold"><%= lore.region %></td>
+                                            <td><span class="badge-role bg-user"><%= lore.media_tipe %></span></td>
+                                            <td class="text-center" style="white-space:nowrap;">
+                                                <i class="fas fa-pen action-icon edit" title="Edit Lore" data-bs-toggle="modal" data-bs-target="#editLoreModal-<%= lore.id %>"></i>
+                                                <a href="/delete-lore/<%= lore.id %>" class="action-icon delete" title="Hapus Lore" onclick="return confirm('Hapus lore ini permanen?');"><i class="fas fa-trash"></i></a>
+                                            </td>
+                                        </tr>
+                                    <% }) } else { %><tr><td colspan="3" class="text-center text-muted">Belum ada dokumen Lore</td></tr><% } %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- TAB 7: KELOLA ULASAN -->
+            <!-- ========================================== -->
+            <div id="tab-reviews" class="admin-tab">
+                <div class="ef-card">
+                    <div class="card-header-custom"><h3 class="card-title-custom"><i class="fas fa-comments text-primary me-2"></i> Log Ulasan Pengguna</h3></div>
+                    <div class="table-responsive">
+                        <table class="table-custom">
+                            <thead><tr><th>ID</th><th>Username Pengulas</th><th>Karakter yg Direview</th><th>Komentar / Taktik</th><th class="text-center">Aksi</th></tr></thead>
+                            <tbody>
+                                <% if(locals.reviewsList && reviewsList.length > 0) { reviewsList.forEach(rev => { %>
+                                    <tr>
+                                        <td class="text-muted">#<%= rev.id %></td>
+                                        <td class="fw-bold"><i class="fas fa-user-circle text-primary me-2"></i><%= rev.username %></td>
+                                        <td><span class="badge-role bg-info-custom"><%= rev.char_name %></span></td>
+                                        <td>
+                                            <div style="max-width:300px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-style:italic;" title="<%= rev.komentar %>">
+                                                "<%= rev.komentar %>"
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <a href="/delete-review/<%= rev.id %>" class="action-icon delete" title="Hapus Ulasan Pengguna" onclick="return confirm('Hapus ulasan ini dari sistem?');"><i class="fas fa-trash"></i></a>
+                                        </td>
+                                    </tr>
+                                <% }) } else { %><tr><td colspan="5" class="text-center text-muted py-5">Belum ada ulasan dari pengguna.</td></tr><% } %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- TAB 8: MANAJEMEN TOP UP -->
+            <!-- ========================================== -->
+            <div id="tab-topup" class="admin-tab">
+                <div class="two-col-layout">
+                    <div class="ef-card">
+                        <h3 class="card-title-custom mb-4"><i class="fas fa-gem text-warning me-2"></i> Buat Paket Top-Up Baru</h3>
+                        <form action="/add-topup-pkg" method="POST">
+                            <div class="mb-3">
+                                <label class="form-label">Kategori Paket</label>
+                                <select name="paket" class="form-control" required>
+                                    <option value="Discount">Discount</option>
+                                    <option value="Hot Sale">Hot Sale</option>
+                                    <option value="Recommended">Recommended</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Jenis Lisensi / Item</label>
+                                <select name="jenis" class="form-control" required>
+                                    <option value="Oroberyl">Oroberyl</option>
+                                    <option value="Protocol Pass">Protocol Pass</option>
+                                    <option value="Monthly">Monthly</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Harga Jual (Rp)</label>
+                                <input type="number" name="harga" class="form-control" required placeholder="Contoh: 15000">
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label">Metode Pembayaran</label>
+                                <select name="metode_pembayaran" class="form-control" required>
+                                    <option value="QRIS">QRIS</option>
+                                    <option value="Bank">Bank Transfer</option>
+                                    <option value="E-Wallet">E-Wallet</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn-submit" style="background:#ffb300; color:#000;">Tambah Paket ke Toko</button>
+                        </form>
+                    </div>
+
+                    <div class="ef-card">
+                        <div class="card-header-custom"><h3 class="card-title-custom">Daftar Paket Penjualan Saat Ini</h3></div>
+                        <div class="table-responsive">
+                            <table class="table-custom">
+                                <thead><tr><th>Paket</th><th>Item</th><th>Harga Jual</th><th>Metode</th><th class="text-center">Aksi</th></tr></thead>
+                                <tbody>
+                                    <% if(locals.topupPackages && topupPackages.length > 0) { topupPackages.forEach(pkg => { %>
+                                        <tr>
+                                            <td class="fw-bold text-dark"><%= pkg.paket %></td>
+                                            <td><span class="badge-role bg-user"><%= pkg.jenis %></span></td>
+                                            <td class="text-success fw-bold">Rp <%= parseInt(pkg.harga).toLocaleString('id-ID') %></td>
+                                            <td><span class="text-muted" style="font-size:0.8rem;"><%= pkg.metode_pembayaran %></span></td>
+                                            <td class="text-center" style="white-space: nowrap;">
+                                                <i class="fas fa-pen action-icon edit" title="Edit Paket" data-bs-toggle="modal" data-bs-target="#editTopupModal-<%= pkg.id %>"></i>
+                                                <a href="/delete-topup-pkg/<%= pkg.id %>" class="action-icon delete" title="Hapus Paket" onclick="return confirm('Hapus paket top-up ini?');"><i class="fas fa-trash"></i></a>
+                                            </td>
+                                        </tr>
+                                    <% }) } else { %><tr><td colspan="5" class="text-center text-muted py-5">Belum ada paket top-up yang dijual.</td></tr><% } %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div> <!-- End Content Body -->
+    </main>
+
+    <!-- ========================================== -->
+    <!-- MODALS SECTION (TEMPAT SEMUA POPUP EDIT) -->
+    <!-- ========================================== -->
+
+    <!-- Modal Edit Operator -->
+    <% if(locals.chars) { chars.forEach(char => { %>
+        <div class="modal fade" id="editCharModal-<%= char.id_char %>" tabindex="-1">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+                    <div class="modal-header border-bottom">
+                        <h5 class="modal-title fw-bold">Edit Data: <%= char.nama %></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4 bg-light">
+                        <form action="/edit-char/<%= char.id_char %>" method="POST" enctype="multipart/form-data">
+                            <div class="row g-3">
+                                <div class="col-md-6"><label class="form-label">Nama Karakter</label><input type="text" name="nama" class="form-control" value="<%= char.nama %>" required></div>
+                                <div class="col-md-6"><label class="form-label">Combat Role</label><input type="text" name="role" class="form-control" value="<%= char.role %>"></div>
+                                <div class="col-md-4"><label class="form-label">Elemen</label><input type="text" name="elements" class="form-control" value="<%= char.elements %>"></div>
+                                <div class="col-md-4"><label class="form-label">Faksi</label><input type="text" name="faksi" class="form-control" value="<%= char.faksi %>"></div>
+                                <div class="col-md-4"><label class="form-label">Ras</label><input type="text" name="ras" class="form-control" value="<%= char.ras %>"></div>
+                                
+                                <div class="col-md-6">
+                                    <label class="form-label">Ganti Avatar Baru</label>
+                                    <input type="file" name="avatar_file" class="form-control mb-1" accept="image/*">
+                                    <input type="text" name="avatar_url" class="form-control" value="<%= char.avatar_url %>" placeholder="Atau paste URL">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Ganti Splash Baru</label>
+                                    <input type="file" name="splash_file" class="form-control mb-1" accept="image/*">
+                                    <input type="text" name="splash_url" class="form-control" value="<%= char.splash_url %>" placeholder="Atau paste URL">
+                                </div>
+
+                                <div class="col-12"><label class="form-label">Deskripsi</label><textarea name="deskripsi" class="form-control" rows="4"><%= char.deskripsi %></textarea></div>
+                                <div class="col-12 mt-4 text-end">
+                                    <button type="button" class="btn btn-secondary fw-bold px-4" data-bs-dismiss="modal">Batal</button>
+                                    <button type="submit" class="btn btn-success fw-bold px-4">Simpan Perubahan</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <% }) } %>
+
+    <!-- Modal Edit Berita -->
+    <% if(locals.newsList) { newsList.forEach(news => { %>
+        <div class="modal fade" id="editNewsModal-<%= news.id %>" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+                    <div class="modal-header border-bottom">
+                        <h5 class="modal-title fw-bold">Edit Berita</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4 bg-light">
+                        <form action="/edit-news/<%= news.id %>" method="POST" enctype="multipart/form-data">
+                            <div class="mb-3"><label class="form-label">Judul Berita</label><input type="text" name="judul" class="form-control" value="<%= news.judul %>" required></div>
+                            <div class="mb-3"><label class="form-label">Tanggal Publikasi</label><input type="date" name="tanggal" class="form-control" value="<%= news.tanggal %>" required></div>
+                            <div class="mb-3">
+                                <label class="form-label">Ganti Cover Gambar</label>
+                                <input type="file" name="gambar_file" class="form-control mb-2" accept="image/*">
+                                <input type="text" name="gambar_url" class="form-control" value="<%= news.gambar_url %>" placeholder="Atau paste URL">
+                            </div>
+                            <div class="mb-3"><label class="form-label">Isi Konten Berita</label><textarea name="konten" class="form-control" rows="5" required><%= news.konten %></textarea></div>
+                            <button type="submit" class="btn-submit" style="background:#0dcaf0; color:#000;">Simpan Pembaruan</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <% }) } %>
+
+    <!-- Modal Edit Lore -->
+    <% if(locals.loreList) { loreList.forEach(lore => { %>
+        <div class="modal fade" id="editLoreModal-<%= lore.id %>" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+                    <div class="modal-header border-bottom">
+                        <h5 class="modal-title fw-bold">Edit Lore Dunia</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4 bg-light">
+                        <form action="/edit-lore/<%= lore.id %>" method="POST" enctype="multipart/form-data">
+                            <div class="mb-3"><label class="form-label">Nama Region / Lokasi</label><input type="text" name="region" class="form-control" value="<%= lore.region %>" required></div>
+                            <div class="mb-3">
+                                <label class="form-label">Tipe Visual Media</label>
+                                <select name="media_tipe" class="form-control">
+                                    <option value="image" <%= lore.media_tipe === 'image' ? 'selected' : '' %>>Gambar / Foto</option>
+                                    <option value="youtube" <%= lore.media_tipe === 'youtube' ? 'selected' : '' %>>Link Video YouTube</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Ganti Media File / Link</label>
+                                <input type="file" name="media_file" class="form-control mb-2" accept="image/*">
+                                <input type="text" name="media_url" class="form-control" value="<%= lore.media_url %>">
+                            </div>
+                            <div class="mb-3"><label class="form-label">Dokumen Sejarah</label><textarea name="sejarah" class="form-control" rows="5" required><%= lore.sejarah %></textarea></div>
+                            <button type="submit" class="btn-submit bg-dark">Simpan Pembaruan</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <% }) } %>
+
+    <!-- Modal Edit Top-Up -->
+    <% if(locals.topupPackages) { topupPackages.forEach(pkg => { %>
+        <div class="modal fade" id="editTopupModal-<%= pkg.id %>" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+                    <div class="modal-header border-bottom">
+                        <h5 class="modal-title fw-bold">Edit Paket Top-Up</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4 bg-light">
+                        <form action="/edit-topup-pkg/<%= pkg.id %>" method="POST">
+                            <div class="mb-3">
+                                <label class="form-label">Kategori Paket</label>
+                                <select name="paket" class="form-control" required>
+                                    <option value="Discount" <%= pkg.paket === 'Discount' ? 'selected' : '' %>>Discount</option>
+                                    <option value="Hot Sale" <%= pkg.paket === 'Hot Sale' ? 'selected' : '' %>>Hot Sale</option>
+                                    <option value="Recommended" <%= pkg.paket === 'Recommended' ? 'selected' : '' %>>Recommended</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Jenis Lisensi / Item</label>
+                                <select name="jenis" class="form-control" required>
+                                    <option value="Oroberyl" <%= pkg.jenis === 'Oroberyl' ? 'selected' : '' %>>Oroberyl</option>
+                                    <option value="Protocol Pass" <%= pkg.jenis === 'Protocol Pass' ? 'selected' : '' %>>Protocol Pass</option>
+                                    <option value="Monthly" <%= pkg.jenis === 'Monthly' ? 'selected' : '' %>>Monthly</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Harga Jual (Rp)</label>
+                                <input type="number" name="harga" class="form-control" value="<%= pkg.harga %>" required>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label">Metode Pembayaran</label>
+                                <select name="metode_pembayaran" class="form-control" required>
+                                    <option value="QRIS" <%= pkg.metode_pembayaran === 'QRIS' ? 'selected' : '' %>>QRIS</option>
+                                    <option value="Bank" <%= pkg.metode_pembayaran === 'Bank' ? 'selected' : '' %>>Bank Transfer</option>
+                                    <option value="E-Wallet" <%= pkg.metode_pembayaran === 'E-Wallet' ? 'selected' : '' %>>E-Wallet</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn-submit" style="background:#ffb300; color:#000;">Simpan Perubahan</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <% }) } %>
+
+    <!-- Data Chart (Tersembunyi) -->
+    <div id="chartData" 
+         data-labels='<%- locals.chars ? JSON.stringify(chars.map(c => c.nama)) : "[]" %>' 
+         data-likes='<%- locals.chars ? JSON.stringify(chars.map(c => c.total_likes)) : "[]" %>' 
+         style="display: none;">
+    </div>
+
+    <!-- Script Utama -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function switchTab(title, tabId, btnElement) {
+            document.getElementById('pageTitle').innerText = title;
+            document.querySelectorAll('.admin-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.menu-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btnElement.classList.add('active');
+        }
+
+        // Render Grafik Likes
+        const ctx = document.getElementById('likeChart').getContext('2d');
+        const chartElement = document.getElementById('chartData');
+        const chartLabels = JSON.parse(chartElement.getAttribute('data-labels'));
+        const chartLikes = JSON.parse(chartElement.getAttribute('data-likes'));
+
+        new Chart(ctx, {
+            type: 'line', 
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'Jumlah Interaksi (Likes)',
+                    data: chartLikes,
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)', 
+                    borderColor: '#28a745', 
+                    borderWidth: 2,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#28a745',
+                    pointRadius: 4,
+                    fill: true,
+                    tension: 0.4 
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { 
+                    y: { beginAtZero: true, grid: { color: '#eee', drawBorder: false } }, 
+                    x: { grid: { display: false, drawBorder: false } } 
+                },
+                plugins: { legend: { display: false } } 
+            }
+        });
+    </script>
+</body>
+</html>

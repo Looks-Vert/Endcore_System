@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Endcore System - Loading</title>
+    <style>
+        /* --- RESET & FONT --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        :root {
+            /* Warna kuning neon yang lebih cerah dan modern */
+            --neon-yellow: #ccff00; 
+            --dark-bg: #0a0a0c;
+        }
+
+        body { overflow: hidden; background-color: var(--dark-bg); color: #fff; }
+
+        /* --- LAYAR LOADING UTAMA --- */
+        #loading-screen {
+            position: fixed; width: 100vw; height: 100vh; top: 0; left: 0;
+            background-color: var(--dark-bg); z-index: 9998;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        /* Background Grid & Garis Topografi (Mengurangi kesan kosong) */
+        .grid-bg {
+            position: absolute; width: 100%; height: 100%; z-index: 1;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+        
+        /* Aksen Sudut (Crosshairs) */
+        .corner-accent { position: absolute; width: 30px; height: 30px; border: 2px solid rgba(255,255,255,0.2); z-index: 2; }
+        .top-left { top: 30px; left: 30px; border-right: none; border-bottom: none; }
+        .top-right { top: 30px; right: 30px; border-left: none; border-bottom: none; }
+        .bottom-left { bottom: 30px; left: 30px; border-right: none; border-top: none; }
+        .bottom-right { bottom: 30px; right: 30px; border-left: none; border-top: none; }
+
+        /* --- TEKS LOG SISTEM (Elemen pengisi kekosongan) --- */
+        .system-logs {
+            position: absolute; top: 40px; left: 40px; z-index: 3;
+            font-family: 'Courier New', Courier, monospace; font-size: 0.75rem; color: #666;
+            text-transform: uppercase; letter-spacing: 1px; line-height: 1.8;
+        }
+        .log-line { opacity: 0; animation: fadeInLog 0.2s forwards; }
+        @keyframes fadeInLog { to { opacity: 1; } }
+
+        /* --- LOGO TENGAH --- */
+        .logo-container { z-index: 5; text-align: center; letter-spacing: 8px; position: relative; }
+        .logo-container h1 { 
+            font-size: 5rem; font-weight: 900; line-height: 1; margin-bottom: 10px; 
+            text-shadow: 0px 0px 15px rgba(255, 255, 255, 0.1);
+        }
+        .logo-container p { font-size: 0.8rem; letter-spacing: 4px; color: #888; }
+        
+        /* Aksen kotak kecil di dekat logo */
+        .logo-accent {
+            position: absolute; right: -20px; bottom: 30px;
+            width: 15px; height: 15px; background-color: var(--neon-yellow);
+        }
+
+        /* --- INDIKATOR LOADING BAWAH --- */
+        .loading-ui {
+            position: absolute; left: 40px; bottom: 40px; z-index: 5;
+            display: flex; flex-direction: column; gap: 5px;
+        }
+        .progress-number {
+            font-size: 4rem; font-weight: 900; color: var(--neon-yellow); line-height: 1;
+            text-shadow: 0px 0px 10px rgba(204, 255, 0, 0.3);
+        }
+        .progress-bar-container {
+            width: 250px; height: 2px; background-color: rgba(255,255,255,0.1);
+            position: relative; overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%; width: 0%; background-color: var(--neon-yellow);
+            box-shadow: 0px 0px 8px var(--neon-yellow);
+        }
+
+        /* --- TRANSISI BLOK KUNING --- */
+        #yellow-wipe {
+            position: fixed; top: 0; left: -100vw; /* Mulai dari luar layar kiri */
+            width: 100vw; height: 100vh;
+            background-color: var(--neon-yellow); z-index: 10000;
+            transition: left 0.6s cubic-bezier(0.8, 0, 0.2, 1), opacity 0.8s ease;
+        }
+
+        /* --- HALAMAN UTAMA (Home Dummy) --- */
+        #main-content {
+            opacity: 0; visibility: hidden; height: 200vh;
+            background-color: #e5e5e5; color: #111; 
+            display: flex; justify-content: center; align-items: center;
+            transition: opacity 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Transisi Layar -->
+    <div id="yellow-wipe"></div>
+
+    <!-- Layar Loading -->
+    <div id="loading-screen">
+        <div class="grid-bg"></div>
+        
+        <div class="corner-accent top-left"></div>
+        <div class="corner-accent top-right"></div>
+        <div class="corner-accent bottom-left"></div>
+        <div class="corner-accent bottom-right"></div>
+
+        <!-- Terminal Logs -->
+        <div class="system-logs" id="sysLogs"></div>
+
+        <!-- Logo Tengah -->
+        <div class="logo-container">
+            <h1>ENDCORE<br>SYSTEM</h1>
+            <p>OVER THE FRONTIER / INTO THE FRONT</p>
+            <div class="logo-accent"></div>
+        </div>
+
+        <!-- Indikator Loading -->
+        <div class="loading-ui">
+            <div class="progress-number" id="progress-text">0%</div>
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="progress-bar"></div>
+            </div>
+            <div style="font-size: 0.65rem; color: #666; letter-spacing: 2px; margin-top: 5px;">UPDATING ASSETS...</div>
+        </div>
+    </div>
+
+    <!-- Halaman Utama (Persiapan Tahap 2) -->
+    <div id="main-content">
+        <div style="text-align: center;">
+            <h1 style="font-weight: 900; font-size: 3rem;">WELCOME TO ENDCORE SYSTEM</h1>
+            <p>Tahap 2: Navigasi Sidebar dan Scrollspy akan ditambahkan di sini.</p>
+        </div>
+    </div>
+
+    <script>
+        const progressText = document.getElementById('progress-text');
+        const progressBar = document.getElementById('progress-bar');
+        const yellowWipe = document.getElementById('yellow-wipe');
+        const loadingScreen = document.getElementById('loading-screen');
+        const mainContent = document.getElementById('main-content');
+        const sysLogs = document.getElementById('sysLogs');
+
+        // Simulasi Terminal Log
+        const logs = [
+            "STARTING SECURE CONNECTION...",
+            "AUTHENTICATING ID: 2410010355...",
+            "USER: LUKMAN NUL HAKIM [VERIFIED]",
+            "MOUNTING ENDCORE DATABASE...",
+            "LOADING UI ELEMENTS..."
+        ];
+
+        let logIndex = 0;
+        const logInterval = setInterval(() => {
+            if (logIndex < logs.length) {
+                const p = document.createElement('div');
+                p.className = 'log-line';
+                p.innerText = '> ' + logs[logIndex];
+                sysLogs.appendChild(p);
+                logIndex++;
+            } else {
+                clearInterval(logInterval);
+            }
+        }, 400);
+
+        // Simulasi Loading Persentase
+        let progress = 0;
+        const loadingInterval = setInterval(() => {
+            progress += Math.floor(Math.random() * 3) + 1; 
+            
+            if (progress >= 100) {
+                progress = 100;
+                clearInterval(loadingInterval);
+                setTimeout(finishLoading, 200); // Jeda sejenak di 100%
+            }
+
+            progressText.innerText = progress + '%';
+            progressBar.style.width = progress + '%';
+        }, 30);
+
+        function finishLoading() {
+            // 1. Blok kuning menyapu dari kiri ke kanan menutupi layar
+            yellowWipe.style.left = '0';
+            
+            setTimeout(() => {
+                // 2. Sembunyikan layar loading di balik blok kuning
+                loadingScreen.style.display = 'none';
+                
+                // 3. Munculkan halaman utama
+                mainContent.style.visibility = 'visible';
+                mainContent.style.opacity = '1';
+                document.body.style.overflow = 'auto';
+
+                // 4. Blok kuning menghilang perlahan (fade out)
+                yellowWipe.style.opacity = '0';
+                
+                // 5. Hapus elemen wipe dari DOM agar tidak mengganggu klik
+                setTimeout(() => {
+                    yellowWipe.style.display = 'none';
+                }, 800);
+                
+            }, 600); // Waktu yang dibutuhkan blok kuning untuk menutupi layar penuh
+        }
+    </script>
+</body>
+</html>

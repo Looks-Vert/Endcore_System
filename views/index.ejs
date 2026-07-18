@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Endfield - Endcore System</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* --- RESET & TEMA --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { 
+            --neon-yellow: #ffea00; 
+            --bg-light: #ffffff; 
+            --text-dark: #111111;
+            --text-muted: #666666;
+            --sb-closed: 75px;
+            --sb-open: 240px;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-light); color: var(--text-dark); overflow-x: hidden; scroll-behavior: smooth; }
+
+        /* --- LOADING SCREEN --- */
+        #loading-screen { position: fixed; width: 100vw; height: 100vh; top: 0; left: 0; background-color: #050505; z-index: 9998; display: flex; justify-content: center; align-items: center; color: #fff; }
+        .grid-bg-dark { position: absolute; width: 100%; height: 100%; z-index: 1; background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px); background-size: 50px 50px; }
+        .system-logs { position: absolute; top: 40px; left: 40px; z-index: 3; font-family: 'Courier New', Courier, monospace; font-size: 0.75rem; color: #555; text-transform: uppercase; letter-spacing: 1px; }
+        .log-line { opacity: 0; animation: fadeInLog 0.2s forwards; }
+        @keyframes fadeInLog { to { opacity: 1; } }
+        .logo-container { z-index: 5; text-align: center; letter-spacing: 5px; }
+        .logo-container h1 { font-size: 4rem; font-weight: 900; line-height: 1; margin-bottom: 10px; color: #fff; text-transform: uppercase;}
+        .loading-ui { position: absolute; left: 40px; bottom: 40px; z-index: 5; display: flex; flex-direction: column; gap: 5px; }
+        .progress-number { font-size: 3rem; font-weight: 900; color: #fff; line-height: 1; }
+        .progress-bar-container { width: 250px; height: 2px; background-color: #222; position: relative; overflow: hidden; }
+        .progress-bar-fill { height: 100%; width: 0%; background-color: #fff; }
+        #wipe-transition { position: fixed; top: 0; left: -100vw; width: 100vw; height: 100vh; background-color: #fff; z-index: 10000; transition: left 0.6s cubic-bezier(0.8, 0, 0.2, 1), opacity 0.8s ease; }
+
+        #main-wrapper { opacity: 0; visibility: hidden; transition: opacity 0.5s ease; display: flex; }
+
+        /* ========================================== */
+        /* --- SIDEBAR KIRI --- */
+        /* ========================================== */
+        .global-sidebar { 
+            width: var(--sb-closed); background-color: #fff; border-right: 1px solid #eaeaea; 
+            display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 900;
+            transition: width 0.3s cubic-bezier(0.25, 1, 0.5, 1); overflow-x: hidden; white-space: nowrap;
+        }
+        .global-sidebar:hover { width: var(--sb-open); box-shadow: 5px 0 20px rgba(0,0,0,0.05); }
+        .global-sidebar::-webkit-scrollbar { display: none; }
+
+        .sb-logo { height: 90px; display: flex; align-items: center; justify-content: flex-start; border-bottom: 1px solid #f0f0f0; cursor: pointer; padding: 0 12px;}
+        .logo-icon { width: 50px; min-width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; color: var(--text-dark); }
+        .logo-text-wrapper { display: flex; flex-direction: column; line-height: 0.9; opacity: 0; transition: opacity 0.2s ease; margin-left: 5px;}
+        .global-sidebar:hover .logo-text-wrapper { opacity: 1; transition-delay: 0.1s;}
+        .sb-logo-title { font-weight: 900; font-size: 1.6rem; letter-spacing: -1px; color: var(--text-dark); }
+        .sb-logo-sub { font-size: 0.65rem; font-weight: 800; letter-spacing: 2px; color: #888; margin-top: 2px;}
+        
+        .sb-menu { flex-grow: 1; padding: 15px 0; overflow-y: auto; display: flex; flex-direction: column; align-items: flex-start; gap: 5px;}
+        .sb-menu::-webkit-scrollbar { display: none; }
+        
+        .sb-item { 
+            width: 100%; display: flex; align-items: center; height: 45px; color: #777; 
+            text-decoration: none; font-size: 1rem; transition: 0.2s; padding: 0 12px; border-left: 4px solid transparent;
+        }
+        .sb-item i { width: 50px; min-width: 50px; text-align: center; font-size: 1.2rem; transition: 0.2s;}
+        .sb-item.active { background: #f4f5f7; color: #111; border-left-color: #111;}
+        .sb-item:hover:not(.active) { background: #f8f9fa; color: #111; border-left-color: #ccc;}
+        .sb-text { opacity: 0; transition: opacity 0.2s ease; margin-left: 10px; font-weight: 800; font-size: 0.9rem; }
+        .global-sidebar:hover .sb-text { opacity: 1; transition-delay: 0.1s;}
+        
+        .sb-bottom { padding: 15px 12px; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid #f0f0f0; background: #fff;}
+        .bottom-nav { display: flex; align-items: center; height: 40px; color: #111; text-decoration: none; font-size: 0.8rem; font-weight: 800; border-radius: 6px; transition: 0.3s; cursor: pointer; padding: 0 5px; }
+        .bottom-nav i { width: 50px; min-width: 50px; text-align: center; font-size: 1.1rem; color: #777; transition: 0.3s;} 
+        
+        .bottom-nav:hover { background: #f4f5f7; }
+        .bottom-nav:hover i { color: var(--neon-yellow); text-shadow: 0 0 10px rgba(255,234,0,0.8); }
+        .bottom-text { opacity: 0; transition: opacity 0.2s ease; margin-left: 5px; color: #333; }
+        .global-sidebar:hover .bottom-text { opacity: 1; transition-delay: 0.1s;}
+        
+        .audio-btn { display: flex; align-items: center; height: 45px; background: #f4f5f7; border-radius: 8px; color: #444; cursor: pointer; transition: 0.3s; padding: 0 5px; margin-top: 5px;}
+        .audio-btn i { width: 50px; min-width: 50px; text-align: center; font-size: 1.1rem; color: #777; transition: 0.3s;}
+        .audio-btn:hover { background: #e0e0e0; }
+        .audio-btn:hover i { color: var(--neon-yellow); text-shadow: 0 0 10px rgba(255,234,0,0.8); }
+        
+        .btn-launch { 
+            margin-top: 10px; background: #111; color: #fff; border-radius: 8px; border: none; cursor: pointer; 
+            display: flex; align-items: center; justify-content: flex-start; overflow: hidden;
+            height: 50px; width: 50px; text-decoration: none; transition: width 0.3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.3s; 
+            padding: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+        .global-sidebar:hover .btn-launch { width: 100%; padding: 0 15px; }
+        .btn-launch:hover { background: #333; box-shadow: 0 0 15px rgba(255,234,0,0.3);}
+        .btn-launch i { font-size: 1.1rem; color: var(--neon-yellow); width: 50px; min-width: 50px; text-align: center; margin: 0; }
+        .btn-launch span { white-space: nowrap; font-weight: 800; font-size: 0.85rem; letter-spacing: 1px; color: #fff; opacity: 0; transition: opacity 0.3s ease; display: none;}
+        .global-sidebar:hover .btn-launch span { opacity: 1; display: inline-block;}
+
+        .sb-socials { display: flex; justify-content: flex-start; gap: 15px; font-size: 0.9rem; color: #aaa; margin-top: 10px; padding: 0 15px; opacity: 0; transition: 0.3s;}
+        .global-sidebar:hover .sb-socials { opacity: 1; transition-delay: 0.1s;}
+        .sb-socials i:hover { color: var(--neon-yellow); text-shadow: 0 0 10px rgba(255,234,0,0.8); cursor: pointer;}
+
+        /* --- KONTEN UTAMA --- */
+        .content-area { margin-left: var(--sb-closed); width: calc(100% - var(--sb-closed)); position: relative; background-color: var(--bg-light); transition: margin-left 0.3s cubic-bezier(0.25, 1, 0.5, 1), width 0.3s cubic-bezier(0.25, 1, 0.5, 1); }
+        .global-sidebar:hover ~ .content-area { margin-left: var(--sb-open); width: calc(100% - var(--sb-open)); }
+        
+        .content-section { min-height: 100vh; position: relative; border-bottom: 1px solid #eaeaea; overflow: hidden; }
+
+        /* ========================================== */
+        /* --- SECTION 1: BERANDA (HOME) --- */
+        /* ========================================== */
+        #beranda { 
+            height: 100vh; padding: 0; display: flex; align-items: center; justify-content: flex-end;
+            background: url('/images/AKEND.jpg') center/cover no-repeat;
+            background-color: #fdfdfd;
+            border: none;
+            position: relative;
+        }
+        #beranda::after {
+            content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 35%;
+            background: linear-gradient(to top, var(--bg-light) 0%, transparent 100%);
+            z-index: 1; pointer-events: none;
+        }
+        .hero-content { position: relative; z-index: 10; text-align: right; width: 100%; padding: 0 80px; color: #111; text-shadow: 0 2px 10px rgba(255,255,255,0.8);}
+        .hero-title { font-size: 4rem; font-weight: 900; line-height: 1; margin-bottom: 15px; }
+
+        /* ========================================== */
+        /* --- SECTION 2: DETAIL OPERATOR --- */
+        /* ========================================== */
+        .detail-layout { 
+            display: flex; min-height: 100vh; position: relative; background-color: #fdfdfd;
+            background-image: radial-gradient(#d5d5d5 1.5px, transparent 1.5px);
+            background-size: 15px 15px;
+        }
+        
+        .operator-list-col { 
+            width: 170px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 0; 
+            z-index: 20; position: relative; border-right: 1px dashed #ccc; background: rgba(255,255,255,0.85); backdrop-filter: blur(5px);
+            margin-left: 35px;
+        }
+
+        .scroll-arrow-btn { width: 42px; min-height: 42px; border-radius: 50%; border: 1px solid #ccc; background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #333; font-size: 1.1rem; z-index: 5; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: 0.2s;}
+        .scroll-arrow-btn:hover { background: #f0f0f0; transform: translateY(-2px); border-color: #999;}
+        
+        .avatar-carousel-window { height: 320px; overflow: hidden; position: relative; width: 100%; margin: 20px 0; }
+        .avatar-track { display: flex; flex-direction: column; align-items: center; transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        .avatar-wrapper { position: relative; width: 85px; height: 85px; display: flex; justify-content: center; align-items: center; margin-bottom: 20px; border-radius: 50%; padding: 4px; border: 2px solid transparent; transition: 0.3s;}
+        .avatar-wrapper.active { border: 2px dashed var(--neon-yellow); }
+        .op-avatar-btn { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; cursor: pointer; border: 2px solid #ccc; transition: 0.3s; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .avatar-wrapper.active .op-avatar-btn { border-color: transparent; }
+        .avatar-wrapper:hover .op-avatar-btn { transform: scale(1.05); }
+        
+        .btn-semua-op-container { margin-top: 25px; width: 100%; display: flex; justify-content: center; padding: 0 10px;}
+        .btn-semua-op { background: #222; color: #fff; padding: 10px 18px; font-size: 0.75rem; font-weight: 800; border-radius: 6px; text-decoration: none; border: none; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; z-index: 5; max-width: 90%; white-space: nowrap;}
+        .btn-semua-op:hover { background: #000; color: var(--neon-yellow); transform: scale(1.02); }
+
+        .operator-info-col { flex: 1; position: relative; padding: 40px 40px 40px 50px; z-index: 5; display: flex; flex-direction: column; justify-content: center;}
+        
+        .watermark-container { position: absolute; top: 45%; transform: translateY(-50%); left: 5%; z-index: 0; pointer-events: none; width: 65%; display: flex; flex-direction: column; align-items: flex-start;}
+        .bg-text-massive { 
+            font-size: 18vw; font-weight: 900; line-height: 0.85; letter-spacing: -2px; margin: 0;
+            color: transparent; background: repeating-linear-gradient(45deg, rgba(0,0,0,0.06), rgba(0,0,0,0.06) 4px, transparent 4px, transparent 8px); -webkit-background-clip: text; background-clip: text;
+        }
+        .watermark-deco { 
+            width: 100%; height: 5px; margin-top: 15px; background: repeating-linear-gradient(90deg, rgba(0,0,0,0.1), rgba(0,0,0,0.1) 40px, transparent 40px, transparent 50px); position: relative;
+        }
+        
+        .yellow-pillar { 
+            position: absolute; top: 0; right: 25%; width: 25vw; height: 100%; 
+            background: linear-gradient(to bottom, var(--neon-yellow) 40%, rgba(255,234,0,0.5) 70%, transparent 100%); 
+            z-index: 1; 
+        }
+
+        .char-data-pane { width: 100%; display: flex; flex-direction: column; position: relative; z-index: 10; display: none; }
+        .d-block-custom.active-pane { display: flex !important; }
+        
+        @keyframes customFadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes customFadeLeft {
+            from { opacity: 0; transform: translate(40px, -50%); } 
+            to { opacity: 1; transform: translate(0, -50%); }
+        }
+
+        .active-pane .info-card-left > * { opacity: 0; animation: customFadeUp 0.6s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
+        .active-pane .info-card-left .top-row-1 { animation-delay: 0.1s; }
+        .active-pane .info-card-left .top-row-2 { animation-delay: 0.15s; }
+        .active-pane .info-card-left .tier-cubes { animation-delay: 0.2s; }
+        .active-pane .info-card-left .title-row { animation-delay: 0.25s; }
+        .active-pane .info-card-left .rainbow-line { animation-delay: 0.3s; }
+        .active-pane .info-card-left .tags-row { animation-delay: 0.35s; }
+        .active-pane .info-card-left .va-row { animation-delay: 0.4s; }
+        .active-pane .info-card-left .role-text { animation-delay: 0.45s; }
+        .active-pane .info-card-left .info-desc { animation-delay: 0.5s; }
+        .active-pane .info-card-left .action-buttons-wrapper { animation-delay: 0.55s; }
+
+        .active-pane .splash-art {
+            opacity: 0;
+            animation: customFadeLeft 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+            animation-delay: 0.2s; 
+        }
+
+        .info-card-left { position: relative; z-index: 10; max-width: 600px; padding-top: 0;}
+        
+        .top-row-1 { display: flex; align-items: center; gap: 15px; font-size: 0.7rem; font-weight: 800; margin-bottom: 6px; color: #555;}
+        .top-row-1 .rec-box { border: 1.5px solid #111; padding: 2px 10px; color: #111;}
+        
+        .top-row-2 { display: flex; align-items: center; gap: 15px; font-size: 0.75rem; font-weight: 700; margin-bottom: 10px; color: #111;}
+        .top-row-2 .bar-line { flex-grow: 1; height: 1.5px; background: #ccc; max-width: 250px; }
+        
+        .tier-cubes { color: #bbb; font-size: 1rem; display: flex; gap: 5px; margin-bottom: 15px;}
+        
+        .title-row { display: flex; align-items: center; gap: 15px; font-size: clamp(2rem, 2.5vw, 2.8rem); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; color: #111; margin-bottom: 5px; font-family: 'Arial', sans-serif; line-height: 1;}
+        
+        .title-row .icon-box.element-box { background: transparent; padding: 0; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;}
+        .title-row .icon-box.element-box img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15)); }
+
+        .rainbow-line { height: 3px; width: 100%; max-width: 400px; background: linear-gradient(to right, #111 0%, #4caf50 20%, #00bcd4 40%, #e91e63 60%, var(--neon-yellow) 80%, #eee 100%); margin-bottom: 15px;}
+        
+        .tags-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; }
+        .tag-box { display: flex; border: 2px solid #111; font-size: 0.75rem; font-weight: 800; align-items: stretch; }
+        .tag-box .label { background: #111; color: #fff; padding: 4px 12px; display: flex; align-items: center; }
+        .tag-box .value { background: #fff; color: #111; padding: 4px 12px; display: flex; align-items: center; }
+        
+        .va-row { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .va-icon { background: var(--neon-yellow); color: #111; font-size: 1rem; width: 35px; height: 25px; display: flex; align-items: center; justify-content: center; border-radius: 3px;}
+        .va-text { font-weight: 700; color: #555; font-size: 0.85rem;}
+        
+        .role-text { font-size: 0.95rem; color: #111; font-weight: 800; margin-bottom: 10px; text-transform: uppercase;}
+        
+        .info-desc { 
+            font-size: 0.85rem; color: #444; line-height: 1.6; margin-bottom: 20px; 
+            text-align: justify; padding-right: 15px; 
+            max-height: 160px; overflow-y: auto;
+        }
+        .info-desc::-webkit-scrollbar { width: 4px; }
+        .info-desc::-webkit-scrollbar-track { background: transparent; }
+        .info-desc::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+        .info-desc::-webkit-scrollbar-thumb:hover { background: #999; }
+        
+        .action-buttons-wrapper { display: flex; gap: 12px; margin-top: 5px; }
+        .btn-action-custom { padding: 8px 22px; border-radius: 30px; font-weight: 800; font-size: 0.85rem; transition: 0.3s; display: flex; align-items: center; gap: 8px; text-decoration: none;}
+        .btn-like { background: var(--neon-yellow); color: #111; border: 2px solid var(--neon-yellow); box-shadow: 0 4px 10px rgba(255,234,0,0.3); cursor: pointer;}
+        .btn-like:hover { background: #fff; border-color: #111; color: #111; transform: translateY(-3px);}
+        .btn-review { background: #111; color: #fff; border: 2px solid #111; box-shadow: 0 4px 10px rgba(0,0,0,0.2); cursor: pointer;}
+        .btn-review:hover { background: #fff; color: #111; transform: translateY(-3px);}
+        
+        .splash-art { position: absolute; right: 0; top: 50%; transform: translate(0, -50%); height: 95vh; width: 60vw; object-fit: contain; object-position: center; z-index: 5; pointer-events: none; filter: drop-shadow(-15px 15px 30px rgba(0,0,0,0.2)); }
+
+        .d-none-custom { display: none !important; }
+
+        /* ========================================== */
+        /* --- SECTION 3: SEMUA OPERATOR (GACHA CARD) --- */
+        /* ========================================== */
+        #semua-operator { display: none; background: #fff; min-height: 100vh; padding: 60px 80px; overflow: visible !important;}
+        
+        .grid-header-bar { position: relative; z-index: 1050; display: flex; gap: 15px; margin-bottom: 40px; border-bottom: 1px solid #eee; padding-bottom: 20px; align-items: center; flex-wrap: wrap;}
+        .sec-title { font-size: 1.8rem; font-weight: 900; margin: 0; display: flex; align-items: center; gap: 15px; text-transform: uppercase;}
+        
+        .filter-group { display: flex; gap: 10px; margin-left: auto;}
+        .btn-filter { background: #fff; color: var(--text-dark); border: 1px solid #ddd; padding: 8px 20px; font-size: 0.85rem; font-weight: bold; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);}
+        .dropdown-menu { border-radius: 8px; border: 1px solid #eee; padding: 10px 0;}
+        .dropdown-item { font-weight: 700; font-size: 0.85rem; padding: 8px 20px; color: #444;}
+        .dropdown-item:hover { background: #f4f5f7; color: #111;}
+        
+        #operatorGridContainer { position: relative; z-index: 1; }
+        .ef-card-gacha {
+            position: relative; width: 100%; aspect-ratio: 9 / 16;
+            background: #fff; border-radius: 4px; overflow: hidden;
+            cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: 0.3s; display: flex; flex-direction: column; border: 1px solid #eee;
+        }
+        .ef-card-gacha:hover { transform: translateY(-8px); box-shadow: 0 15px 30px rgba(0,0,0,0.15); border-color: #ddd;}
+        
+        .ef-card-y-bar {
+            position: absolute; left: 0; top: 0; width: 45px; height: 100%;
+            background-color: var(--neon-yellow); z-index: 2; display: flex; flex-direction: column; align-items: center; padding-top: 15px;
+        }
+        .ef-card-y-bar-icon { font-size: 0.8rem; color: #111; margin-bottom: 15px; border: 1px solid #111; padding: 2px 4px; }
+        .ef-card-y-bar-text { writing-mode: vertical-rl; transform: rotate(180deg); font-weight: 900; font-size: 1.5rem; color: rgba(255,255,255,0.7); letter-spacing: 2px;}
+        
+        .ef-card-img-wrap { position: absolute; left: 45px; top: 0; width: calc(100% - 45px); height: 100%; z-index: 1;}
+        .ef-card-img-wrap img { width: 100%; height: 100%; object-fit: cover; object-position: center top; }
+        .ef-card-img-fade { position: absolute; bottom: 0; left: 0; width: 100%; height: 50%; background: linear-gradient(to top, #fff 25%, transparent); }
+        
+        .ef-card-content { position: absolute; bottom: 0; left: 45px; width: calc(100% - 45px); height: auto; padding: 15px; z-index: 3; display: flex; flex-direction: column; justify-content: flex-end; background: transparent;}
+        .ef-card-strip { background: var(--neon-yellow); font-size: 0.6rem; font-weight: 900; padding: 3px 6px; width: fit-content; margin-bottom: 8px; border-left: 3px solid #ff4081; color: #111; letter-spacing: 1px;}
+        
+        .ef-card-title { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+        .ef-card-class-icon { display: flex; gap: 2px; }
+        .ef-card-class-icon img { width: 18px; height: 18px; border-radius: 2px; object-fit: cover;}
+        .ef-card-name { font-weight: 900; font-size: 1.2rem; text-transform: uppercase; color: #111; letter-spacing: -0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1;}
+        
+        .ef-card-stars { color: #111; font-size: 0.65rem; margin-bottom: 12px; display: flex; gap: 3px; }
+        .ef-card-tags { display: flex; gap: 5px; flex-wrap: wrap; }
+        .ec-mini-tag { display: flex; font-size: 0.5rem; border: 1px solid #111; align-items: stretch; }
+        .ec-mini-label { background: #555; color: #fff; padding: 2px 4px; font-weight: bold; }
+        .ec-mini-val { background: #fff; color: #111; padding: 2px 4px; font-weight: bold; }
+
+        /* ========================================== */
+        /* --- SECTION LAINNYA & LORE --- */
+        /* ========================================== */
+        .sec-padding { padding: 80px 80px; }
+        #tierlist { background: #fdfdfd; }
+        .tier-row { display: flex; margin-bottom: 20px; background: #fff; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.02);}
+        .tier-label { width: 100px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: 900; color: #fff; text-shadow: 2px 2px 0 rgba(0,0,0,0.2); }
+        .tier-ss { background: #ff5252; } .tier-s { background: #ff9800; } .tier-a { background: var(--neon-yellow); color: #000; text-shadow: none; } .tier-b { background: #8bc34a; }
+        .tier-chars { flex-grow: 1; padding: 15px; display: flex; gap: 15px; flex-wrap: wrap; }
+        .tier-char-img { width: 65px; height: 65px; border-radius: 5px; object-fit: cover; border: 2px solid #eee; transition: 0.2s; cursor: pointer; }
+        .tier-char-img:hover { transform: scale(1.1); border-color: var(--text-dark); }
+        
+        #ulasan { background: #fdfdfd; }
+        .review-card { background: #fff; border-radius: 8px; padding: 20px; border: 1px solid #eee; box-shadow: 0 4px 15px rgba(0,0,0,0.03); height: 100%; display: flex; flex-direction: column; transition: 0.3s;}
+        .review-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.08); border-color: #ddd;}
+        .rc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px;}
+        .rc-user { font-weight: 800; color: #111; display: flex; align-items: center; gap: 8px;}
+        .rc-user i { color: var(--neon-yellow); font-size: 1.2rem; text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+        .rc-date { font-size: 0.75rem; color: #888; font-weight: bold;}
+        .rc-body { flex-grow: 1; font-size: 0.9rem; color: #555; line-height: 1.6; font-style: italic;}
+        .rc-footer { margin-top: 15px; padding-top: 15px; border-top: 1px dashed #eee; display: flex; align-items: center; gap: 10px;}
+        .rc-char-img { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd;}
+        .rc-char-name { font-weight: 800; font-size: 0.8rem; color: #333; text-transform: uppercase;}
+
+        .lore-item { display: flex; gap: 40px; margin-bottom: 50px; align-items: center; background: #fff; padding: 30px; border-radius: 12px; border: 1px solid #eee; box-shadow: 0 5px 15px rgba(0,0,0,0.02);}
+        .lore-img-box { flex: 1; border-radius: 8px; overflow: hidden; position: relative; }
+        .lore-text-box { flex: 1; }
+        .lore-region { font-size: 2.2rem; font-weight: 900; margin-bottom: 10px; color: #111;}
+        .lore-sejarah { font-size: 1.05rem; color: #555; line-height: 1.8; text-align: justify;}
+
+        /* BERITA CARDS STYLE */
+        .news-card { background: #fff; border: 1px solid #eee; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; text-decoration: none; color: inherit; height: 100%; transition: 0.3s; box-shadow: 0 5px 15px rgba(0,0,0,0.03);}
+        .news-card:hover { transform: translateY(-8px); box-shadow: 0 15px 30px rgba(0,0,0,0.08); border-color: #ddd;}
+        .news-card:hover .news-img { transform: scale(1.05); }
+        
+        /* FOOTER */
+        .endcore-footer { background-color: #0f0f0f; color: #fff; padding: 60px 40px 40px; text-align: center; display: flex; flex-direction: column; align-items: center; border-top: 1px solid #222;}
+        .footer-logo-wrap { display: flex; flex-direction: column; align-items: center; margin-bottom: 30px; cursor: pointer; }
+        .footer-logo-sub { font-size: 0.6rem; letter-spacing: 8px; font-weight: 700; color: #aaa; margin-bottom: -5px; margin-left: 8px;}
+        .footer-logo-main { font-size: 3rem; font-weight: 900; letter-spacing: 1px; color: #fff; }
+        .footer-links { display: flex; gap: 20px; align-items: center; margin-bottom: 40px; font-size: 0.9rem; font-weight: 700; }
+        .footer-links a { color: #fff; text-decoration: none; transition: color 0.3s; }
+        .footer-links a:hover { color: var(--neon-yellow); }
+        .footer-links .separator { color: #444; }
+        .footer-legal { color: #666; font-size: 0.7rem; max-width: 900px; line-height: 1.6; margin-bottom: 30px; }
+        .footer-copyright { color: #555; font-size: 0.7rem; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .footer-logos { display: flex; gap: 30px; align-items: center; font-size: 1.2rem; font-weight: 800; color: #777; margin-bottom: 5px; font-style: italic;}
+        .publisher-logo { display: flex; align-items: center; gap: 8px; }
+        .publisher-logo i { font-size: 1.5rem; }
+
+        /* ========================================== */
+        /* --- RESPONSIVE MOBILE TWEAKS --- */
+        /* ========================================== */
+        @media (max-width: 768px) {
+            /* Sidebar becomes Bottom Navigation */
+            .global-sidebar {
+                width: 100% !important;
+                height: 65px !important;
+                flex-direction: row;
+                bottom: 0;
+                top: auto;
+                border-top: 1px solid #ddd;
+                z-index: 9999;
+                border-right: none;
+            }
+            .sb-logo, .sb-text, .bottom-text, .btn-launch span { display: none !important; }
+            .sb-menu { flex-direction: row; overflow-x: auto; width: auto; flex-grow: 1; padding: 0; align-items: center; }
+            .sb-item { width: 50px; padding: 0 10px; border: none !important; justify-content: center; }
+            .sb-item.active { border-bottom: 3px solid var(--neon-yellow) !important; background: transparent; }
+            
+            .sb-bottom { flex-direction: row; padding: 0; width: auto; align-items: center; border-top: none; gap: 0;}
+            .bottom-nav, .audio-btn { width: 45px; justify-content: center; margin: 0; padding: 0; height: 100%; border-radius: 0; background: transparent;}
+            .btn-launch { height: 40px; width: 40px; margin: 0 10px; border-radius: 50%; padding: 0; justify-content: center;}
+            .btn-launch i { font-size: 1rem; width: auto;}
+            .sb-socials { display: none; }
+            
+            .content-area { margin-left: 0 !important; width: 100% !important; padding-bottom: 65px; }
+            
+            /* Home Adjustments */
+            .hero-content { padding: 20px; text-align: center; }
+            .hero-title { font-size: 2.2rem; }
+            
+            /* Operator Detail Adjustments */
+            .detail-layout { flex-direction: column; }
+            .operator-list-col { width: 100%; flex-direction: row; padding: 15px; margin: 0; border-right: none; border-bottom: 1px solid #eee; overflow-x: auto; background: #fff;}
+            .avatar-carousel-window { height: auto; width: 100%; overflow: visible; margin: 0;}
+            .avatar-track { flex-direction: row; transform: none !important; gap: 15px; }
+            .avatar-wrapper { margin: 0; width: 60px; height: 60px; flex-shrink: 0; }
+            .scroll-arrow-btn, .btn-semua-op-container { display: none; }
+            
+            .operator-info-col { padding: 20px; }
+            .yellow-pillar { display: none; }
+            .splash-art { width: 100%; right: -25%; opacity: 0.15; z-index: 0; top: 40%; }
+            .info-card-left { z-index: 10; padding-top: 10px; }
+            .title-row { font-size: 1.8rem; }
+            
+            /* Grid and Padding Adjustments */
+            .sec-padding { padding: 40px 20px; }
+            #semua-operator { padding: 30px 20px; }
+            .grid-header-bar { flex-direction: column; align-items: flex-start; gap: 15px; }
+            .filter-group { flex-direction: column; align-items: flex-start; width: 100%; }
+            .filter-group .dropdown { width: 100%; }
+            .btn-filter { width: 100%; text-align: left; }
+            
+            .lore-item { flex-direction: column; gap: 20px; padding: 20px; }
+            .tu-card { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <% 
+        function renderUrl(url, type, name) {
+            if (!url || url.trim() === '') {
+                if (type === 'avatar') return 'https://placehold.co/100x100/f4f5f7/000?text=' + name.charAt(0);
+                return 'https://placehold.co/800x1000/transparent/eee?text=' + name;
+            }
+            if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('/')) return url;
+            return '/' + type + '/' + url;
+        }
+
+        function getElementIcon(el) {
+            let elName = el ? el.trim() : 'Physical';
+            let formattedName = elName.charAt(0).toUpperCase() + elName.slice(1).toLowerCase();
+            return '/images/Element_' + formattedName + '.webp';
+        }
+    %>
+
+    <audio id="bgMusic" loop><source src="/music/bgm.mp3" type="audio/mpeg"></audio>
+
+    <div id="wipe-transition"></div>
+    <div id="loading-screen">
+        <div class="grid-bg-dark"></div>
+        <div class="system-logs" id="sysLogs"></div>
+        <div class="logo-container">
+            <h1>ENDCORE<br>SYSTEM</h1>
+        </div>
+        <div class="loading-ui">
+            <div class="progress-number" id="progress-text">0%</div>
+            <div class="progress-bar-container"><div class="progress-bar-fill" id="progress-bar"></div></div>
+            <div style="font-size: 0.65rem; color: #888; letter-spacing: 2px; margin-top: 5px; font-weight: bold;">INITIALIZING ASSETS...</div>
+        </div>
+    </div>
+
+    <div id="main-wrapper">
+        <aside class="global-sidebar">
+            <div class="sb-logo">
+                <div class="logo-icon"><i class="fas fa-layer-group"></i></div>
+                <div class="logo-text-wrapper">
+                    <span class="sb-logo-title">ENDCORE</span>
+                    <span class="sb-logo-sub">SYSTEM</span>
+                </div>
+            </div>
+            
+            <div class="sb-menu">
+                <a href="#beranda" class="sb-item active" onclick="closeAllOperatorView()"><i class="fas fa-home"></i><span class="sb-text">Beranda</span></a>
+                <a href="#operator" class="sb-item" onclick="scrollToOperator()"><i class="fas fa-id-badge"></i><span class="sb-text">Operator</span></a>
+                <a href="#tierlist" class="sb-item" onclick="closeAllOperatorView()"><i class="fas fa-sort-amount-up"></i><span class="sb-text">Tier List Guide</span></a>
+                <a href="#ulasan" class="sb-item" onclick="closeAllOperatorView()"><i class="fas fa-comments"></i><span class="sb-text">Log Ulasan</span></a>
+                <a href="#lore" class="sb-item" onclick="closeAllOperatorView()"><i class="fas fa-book-open"></i><span class="sb-text">Kisah / Lore</span></a>
+                <a href="#berita" class="sb-item" onclick="closeAllOperatorView()"><i class="fas fa-calendar-alt"></i><span class="sb-text">Berita & Versi</span></a>
+            </div>
+
+            <div class="sb-bottom">
+                <% if(locals.user) { %>
+                    <a href="<%= locals.user.role === 'admin' ? '/dashboard' : '#' %>" class="bottom-nav">
+                        <i class="fas fa-user-circle icon-account"></i> <span class="bottom-text"><%= locals.user.username %></span>
+                    </a>
+                    <a href="/logout" class="bottom-nav"><i class="fas fa-sign-out-alt icon-logout"></i> <span class="bottom-text">Logout</span></a>
+                <% } else { %>
+                    <a href="/login" class="bottom-nav"><i class="fas fa-user icon-account"></i> <span class="bottom-text">Akun Login</span></a>
+                <% } %>
+                
+                <a href="#topup" class="bottom-nav" onclick="closeAllOperatorView()"><i class="fas fa-gem icon-topup"></i> <span class="bottom-text">Pusat Top-up</span></a>
+                
+                <div class="audio-btn mt-2" onclick="toggleAudio()" title="Toggle Suara">
+                    <i class="fas fa-volume-up" id="bgmIcon"></i> <span class="bottom-text" id="bgmText">Suara: Aktif</span>
+                </div>
+
+                <div class="btn-launch" data-bs-toggle="modal" data-bs-target="#gameLauncherModal">
+                    <i class="fas fa-play"></i>
+                    <span>Buka Game</span>
+                </div>
+                
+                <div class="sb-socials">
+                    <i class="fab fa-twitter"></i>
+                    <i class="fab fa-tiktok"></i>
+                    <i class="fab fa-facebook"></i>
+                    <i class="fab fa-discord"></i>
+                </div>
+            </div>
+        </aside>
+
+        <main class="content-area">
+            
+            <!-- 1. BERANDA -->
+            <section id="beranda" class="content-section">
+                <div class="hero-content" data-aos="fade-left">
+                    <div class="hero-subtitle">VERSI BAB INTI</div>
+                    <h1 class="hero-title">KEPULANGAN<br><span style="font-size: 3rem; color: #d32f2f;">Laga Penentu Wuling</span></h1>
+                    <p class="hero-desc">Bersama Lagi, Menuju Bab Baru. Jelajahi Talos-II, bangun fasilitas AIC, dan hadapi ancaman Ankhor demi kelangsungan Endfield Industries.</p>
+                </div>
+            </section>
+
+            <!-- 2. DETAIL OPERATOR -->
+            <section id="operator" class="content-section" style="padding: 0; background: #fff;">
+                <div class="detail-layout">
+                    
+                    <div class="operator-list-col" data-aos="fade-right">
+                        <button class="scroll-arrow-btn mb-2" onclick="scrollAvatar('up')"><i class="fas fa-chevron-up"></i></button>
+                        
+                        <div class="avatar-carousel-window">
+                            <div class="avatar-track" id="avatarTrack">
+                                <% chars.forEach((char, index) => { %>
+                                    <div class="avatar-wrapper <%= index === 0 ? 'active' : '' %>" id="ava-wrap-<%= index %>" onclick="showOperator('<%= index %>')">
+                                        <img src="<%= renderUrl(char.avatar_url, 'avatar', char.nama) %>" class="op-avatar-btn" alt="Ava">
+                                    </div>
+                                <% }) %>
+                            </div>
+                        </div>
+
+                        <button class="scroll-arrow-btn mt-2" onclick="scrollAvatar('down')"><i class="fas fa-chevron-down"></i></button>
+                        
+                        <div class="btn-semua-op-container mt-4">
+                            <button class="btn-semua-op shadow-sm" onclick="showSemuaOperator()">
+                                <i class="fas fa-address-book"></i> Semua Operator
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="operator-info-col">
+                        <div class="watermark-container" data-aos="zoom-in" data-aos-duration="2000">
+                            <h1 class="bg-text-massive">ENDFIELD</h1>
+                            <div class="watermark-deco"></div>
+                        </div>
+                        
+                        <div class="yellow-pillar" data-aos="fade-down" data-aos-duration="1500"></div>
+
+                        <% chars.forEach((char, index) => { %>
+                            <div class="char-data-pane <%= index === 0 ? 'd-block-custom active-pane' : 'd-none-custom' %>" id="data-<%= index %>">
+                                
+                                <img src="<%= renderUrl(char.splash_url, 'splash', char.nama) %>" class="splash-art" alt="Splash">
+
+                                <div class="info-card-left">
+                                    <div class="top-row-1">
+                                        <div class="rec-box">[ REC ]</div>
+                                        <div><i class="fas fa-crosshairs"></i> MISSION-DEPENDENT PAYLOAD</div>
+                                    </div>
+                                    <div class="top-row-2">
+                                        <span><%= char.nama %></span>
+                                        <div class="bar-line"></div>
+                                        <span><%= index + 1 %> / <%= chars.length %></span>
+                                    </div>
+
+                                    <div class="tier-cubes">
+                                        <i class="fas fa-cube"></i><i class="fas fa-cube"></i><i class="fas fa-cube"></i><i class="fas fa-cube"></i><i class="fas fa-cube"></i><i class="fas fa-cube"></i>
+                                    </div>
+
+                                    <div class="title-row">
+                                        <div class="icon-box element-box"><img src="<%= getElementIcon(char.elements) %>" alt="<%= char.elements %>"></div>
+                                        <span>[ <%= char.nama %> ]</span>
+                                    </div>
+                                    
+                                    <div class="rainbow-line"></div>
+                                    
+                                    <div class="tags-row">
+                                        <div class="tag-box"><div class="label">Faksi</div><div class="value"><%= char.faksi %></div></div>
+                                        <div class="tag-box"><div class="label">Ras</div><div class="value"><%= char.ras %></div></div>
+                                    </div>
+
+                                    <div class="va-row">
+                                        <div class="va-icon" style="background:var(--neon-yellow);"><i class="fas fa-microphone"></i></div>
+                                        <div class="va-text">System Database Record</div>
+                                    </div>
+                                    
+                                    <div class="role-text">ROLE: <%= char.role %> | ELEMEN: <%= char.elements %></div>
+                                    
+                                    <div class="info-desc"><%= char.deskripsi %></div>
+
+                                    <div class="action-buttons-wrapper">
+                                        <button type="button" class="btn btn-action-custom btn-like" onclick="likeOperator('<%= char.id_char %>', this)" data-liked="false">
+                                            <i class="fas fa-heart text-secondary text-white"></i> <span class="like-count">Like (<%= char.total_likes || 0 %>)</span>
+                                        </button>
+                                        <button type="button" class="btn btn-action-custom btn-review" data-bs-toggle="modal" data-bs-target="#reviewModal-<%= char.id_char %>">
+                                            <i class="fas fa-comment-dots"></i> Log Review
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }) %>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. HALAMAN SEMUA OPERATOR -->
+            <section id="semua-operator">
+                <div class="grid-header-bar" data-aos="fade-down">
+                    <button class="btn btn-dark fw-bold px-4 rounded-pill me-3" onclick="closeAllOperatorView()"><i class="fas fa-arrow-left me-2"></i> Kembali</button>
+                    <h2 class="sec-title m-0"><i class="fas fa-database text-warning"></i> DATABASE OPERATOR</h2>
+                    
+                    <div class="filter-group">
+                        <div class="dropdown">
+                            <button class="btn btn-filter dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                Role: <span id="current-role">Semua</span>
+                            </button>
+                            <ul class="dropdown-menu shadow">
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="setFilter('role', 'Semua')">Semua</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="setFilter('role', 'Guard')">Guard</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="setFilter('role', 'Striker')">Striker</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="setFilter('role', 'Supporter')">Supporter</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="setFilter('role', 'Caster')">Caster</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="setFilter('role', 'Defender')">Defender</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="setFilter('role', 'Vanguard')">Vanguard</a></li>
+                            </ul>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-filter dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                Element: <span id="current-element">Semua</span>
+                            </button>
+                            <ul class="dropdown-menu shadow">
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="setFilter('element', 'Semua')">Semua</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="setFilter('element', 'Nature')">Nature</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="setFilter('element', 'Electric')">Electric</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="setFilter('element', 'Physical')">Physical</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="setFilter('element', 'Heat')">Heat</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="setFilter('element', 'Cryo')">Cryo</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-4 g-4 mt-2" id="operatorGridContainer">
+                    <% chars.forEach((char, index) => { %>
+                        <div class="col operator-card-item" data-aos="zoom-in" data-role="<%= char.role %>" data-element="<%= char.elements %>">
+                            <div class="ef-card-gacha" onclick="showOperator('<%= index %>'); scrollToOperator();">
+                                
+                                <div class="ef-card-y-bar">
+                                    <div class="ef-card-y-bar-icon"><i class="fas fa-arrow-up"></i></div>
+                                    <span class="ef-card-y-bar-text">ENDFIELD</span>
+                                </div>
+                                
+                                <div class="ef-card-img-wrap">
+                                    <img src="<%= renderUrl(char.splash_url, 'splash', char.nama) %>" alt="<%= char.nama %>">
+                                    <div class="ef-card-img-fade"></div>
+                                </div>
+                                
+                                <div class="ef-card-content">
+                                    <div class="ef-card-strip">// OPERATOR +</div>
+                                    <div class="ef-card-title">
+                                        <div class="ef-card-class-icon">
+                                            <img src="<%= getElementIcon(char.elements) %>" style="width:18px;height:18px;object-fit:cover;">
+                                        </div>
+                                        <div class="ef-card-name"><%= char.nama %></div>
+                                    </div>
+                                    <div class="ef-card-stars">
+                                        <i class="fas fa-cube"></i><i class="fas fa-cube"></i><i class="fas fa-cube"></i><i class="fas fa-cube"></i><i class="fas fa-cube"></i>
+                                    </div>
+                                    <div class="ef-card-tags">
+                                        <div class="ec-mini-tag"><span class="ec-mini-label">Faksi</span><span class="ec-mini-val"><%= char.faksi %></span></div>
+                                        <div class="ec-mini-tag"><span class="ec-mini-label">Ras</span><span class="ec-mini-val"><%= char.ras %></span></div>
+                                    </div>
+                                </div>
+                                
+                            </div>
+                        </div>
+                    <% }) %>
+                </div>
+            </section>
+
+            <!-- 4. HALAMAN TIER LIST -->
+            <section id="tierlist" class="content-section sec-padding">
+                <div class="grid-header-bar mb-5" data-aos="fade-right">
+                    <h2 class="sec-title"><i class="fas fa-sort-amount-up text-dark"></i> TIER LIST RANKING</h2>
+                </div>
+
+                <% ['SS', 'S', 'A', 'B'].forEach(tierRank => { %>
+                    <div class="tier-row" data-aos="fade-up">
+                        <div class="tier-label tier-<%= tierRank.toLowerCase() %>"><%= tierRank %></div>
+                        <div class="tier-chars">
+                            <% 
+                            const filteredChars = chars.filter(c => c.tier && c.tier.toString().toUpperCase().trim() === tierRank);
+                            if(filteredChars.length > 0) {
+                                filteredChars.forEach(char => { %>
+                                    <a href="#operator" onclick="showOperator('<%= chars.indexOf(char) %>'); scrollToOperator();">
+                                        <img src="<%= renderUrl(char.avatar_url, 'avatar', char.nama) %>" class="tier-char-img" title="<%= char.nama %>">
+                                    </a>
+                            <%  });
+                            } else { %>
+                                <div class="text-muted fst-italic p-2">Belum ada operator di tier ini.</div>
+                            <% } %>
+                        </div>
+                    </div>
+                <% }) %>
+            </section>
+
+            <!-- 5. HALAMAN LOG ULASAN USER -->
+            <section id="ulasan" class="content-section sec-padding bg-light">
+                <div class="grid-header-bar mb-5" data-aos="fade-right">
+                    <h2 class="sec-title"><i class="fas fa-comments text-dark"></i> LOG ULASAN OPERATOR</h2>
+                </div>
+
+                <div class="row g-4">
+                    <% 
+                    if(typeof reviews !== 'undefined' && reviews.length > 0) { 
+                        reviews.forEach((rev, i) => { 
+                    %>
+                        <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="<%= (i % 3) * 100 %>">
+                            <div class="review-card">
+                                <div class="rc-header">
+                                    <div class="rc-user"><i class="fas fa-user-circle"></i> <%= rev.user_name || 'Anonymous' %></div>
+                                    <div class="rc-date"><%= rev.tanggal || new Date().toISOString().split('T')[0] %></div>
+                                </div>
+                                <div class="rc-body">
+                                    "<%= rev.komentar %>"
+                                </div>
+                                <div class="rc-footer">
+                                    <img src="<%= renderUrl(rev.char_avatar_url, 'avatar', rev.char_name) %>" class="rc-char-img">
+                                    <span class="rc-char-name"><%= rev.char_name %></span>
+                                </div>
+                            </div>
+                        </div>
+                    <% 
+                        }); 
+                    } else { 
+                    %>
+                        <div class="col-12 text-center py-5 text-muted" data-aos="zoom-in">
+                            <i class="fas fa-folder-open fs-1 mb-3"></i>
+                            <h4>Sistem Log Ulasan Saat Ini Kosong.</h4>
+                            <p>Jadilah yang pertama memberikan ulasan taktik operator!</p>
+                        </div>
+                    <% } %>
+                </div>
+            </section>
+
+            <!-- 6. KISAH / LORE DUNIA (DIPERBAGUS & YOUTUBE READY) -->
+            <section id="lore" class="content-section sec-padding">
+                <div class="grid-header-bar mb-5" data-aos="fade-right">
+                    <h2 class="sec-title"><i class="fas fa-book-open text-dark"></i> KISAH DUNIA & REGION</h2>
+                </div>
+
+                <% if(typeof loreList !== 'undefined' && loreList.length > 0) { %>
+                    <% loreList.forEach((lore, i) => { %>
+                        <div class="lore-item" data-aos="fade-up">
+                            <div class="lore-img-box" style="border: 1px solid #ddd; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                                <% if(lore.media_tipe === 'youtube') { %>
+                                    <% 
+                                        let ytId = '';
+                                        if(lore.media_url.includes('v=')) ytId = lore.media_url.split('v=')[1].substring(0,11);
+                                        else if(lore.media_url.includes('youtu.be/')) ytId = lore.media_url.split('youtu.be/')[1].substring(0,11);
+                                        let embedUrl = ytId ? 'https://www.youtube.com/embed/' + ytId : lore.media_url;
+                                    %>
+                                    <iframe width="100%" height="100%" src="<%= embedUrl %>" title="YouTube Video Player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="aspect-ratio: 16/9; display: block;"></iframe>
+                                <% } else { %>
+                                    <img src="<%= renderUrl(lore.media_url, 'lore', lore.region) %>" alt="<%= lore.region %>" style="width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block;">
+                                <% } %>
+                            </div>
+                            <div class="lore-text-box">
+                                <h3 class="lore-region"><%= lore.region %></h3>
+                                <div class="mb-3">
+                                    <span style="background: #111; color: var(--neon-yellow); font-size: 0.75rem; font-weight: 800; padding: 4px 12px; border-radius: 4px; letter-spacing: 1px;"><i class="fas fa-map-marker-alt me-1"></i> ARSIP AREA</span>
+                                </div>
+                                <p class="lore-sejarah"><%= lore.sejarah %></p>
+                            </div>
+                        </div>
+                    <% }) %>
+                <% } else { %>
+                    <div class="text-center py-5 text-muted" data-aos="zoom-in">
+                        <i class="fas fa-globe fs-1 mb-3"></i>
+                        <h4>Dokumen arsip wilayah belum terbuka.</h4>
+                    </div>
+                <% } %>
+            </section>
+
+            <!-- 7. BERITA / KALENDER VERSI (DIPERBAGUS) -->
+            <section id="berita" class="content-section sec-padding bg-light">
+                <div class="grid-header-bar mb-5" data-aos="fade-right">
+                    <h2 class="sec-title"><i class="fas fa-calendar-alt text-dark"></i> BERITA & KALENDER VERSI</h2>
+                </div>
+                
+                <div class="row g-4">
+                    <% if(typeof newsList !== 'undefined' && newsList.length > 0) { %>
+                        <% newsList.forEach((news, i) => { %>
+                            <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="<%= (i % 3) * 100 %>">
+                                <a href="#" class="news-card">
+                                    <div style="position: relative; overflow: hidden; aspect-ratio: 16/9;">
+                                        <img src="<%= renderUrl(news.gambar_url, 'news', 'Berita') %>" class="news-img" alt="Berita" style="width: 100%; height: 100%; object-fit: cover; transition: 0.5s;">
+                                        <div style="position: absolute; top: 10px; right: 10px; background: var(--neon-yellow); color: #111; font-weight: 900; padding: 5px 12px; border-radius: 4px; font-size: 0.8rem; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+                                            <%= new Date(news.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) %>
+                                        </div>
+                                    </div>
+                                    <div class="news-data" style="padding: 20px;">
+                                        <h3 class="news-title" style="font-size: 1.25rem; font-weight: 800; color: #111; margin-bottom: 10px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"><%= news.judul %></h3>
+                                        <p class="news-excerpt" style="font-size: 0.9rem; color: #555; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;"><%= news.konten %></p>
+                                        <div class="mt-3 text-end">
+                                            <span style="font-size: 0.85rem; font-weight: 800; color: #111;">BACA SELENGKAPNYA <i class="fas fa-arrow-right ms-1 text-warning"></i></span>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                        <% }) %>
+                    <% } else { %>
+                        <div class="col-12 text-center py-5 text-muted" data-aos="fade-up">
+                            <i class="fas fa-folder-open fs-1 mb-3"></i>
+                            <h4>Belum ada siaran berita saat ini.</h4>
+                        </div>
+                    <% } %>
+                </div>
+            </section>
+
+            <!-- 8. PUSAT TOP-UP LISENSI (BARU & ELEGAN) -->
+            <section id="topup" class="content-section sec-padding">
+                <div class="grid-header-bar mb-5" data-aos="fade-right">
+                    <h2 class="sec-title"><i class="fas fa-gem text-dark"></i> PUSAT LISENSI & TOP-UP</h2>
+                </div>
+                
+                <div class="row g-4 justify-content-center">
+                    <% if(typeof topupPackages !== 'undefined' && topupPackages.length > 0) { %>
+                        <% topupPackages.forEach((pkg, i) => { %>
+                            <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="<%= (i % 3) * 100 %>">
+                                <div class="tu-card" style="background: #fff; border: 2px solid #eee; border-radius: 12px; padding: 30px; text-align: center; transition: 0.3s; position: relative; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.03);">
+                                    
+                                    <!-- Badge Kategori Promo -->
+                                    <% if(pkg.paket === 'Hot Sale') { %>
+                                        <div style="position: absolute; top: 15px; left: -30px; background: #dc3545; color: #fff; font-weight: 900; font-size: 0.7rem; padding: 5px 35px; transform: rotate(-45deg); letter-spacing: 1px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">HOT SALE</div>
+                                    <% } else if(pkg.paket === 'Discount') { %>
+                                        <div style="position: absolute; top: 15px; left: -30px; background: #198754; color: #fff; font-weight: 900; font-size: 0.7rem; padding: 5px 35px; transform: rotate(-45deg); letter-spacing: 1px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">DISCOUNT</div>
+                                    <% } else if(pkg.paket === 'Recommended') { %>
+                                        <div style="position: absolute; top: 15px; left: -40px; background: var(--neon-yellow); color: #000; font-weight: 900; font-size: 0.7rem; padding: 5px 45px; transform: rotate(-45deg); letter-spacing: 1px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">RECOMMENDED</div>
+                                    <% } %>
+                                    
+                                    <div style="width: 70px; height: 70px; background: #f4f5f7; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; font-size: 2rem; color: #111;">
+                                        <% if(pkg.jenis === 'Oroberyl') { %><i class="fas fa-cube text-info"></i>
+                                        <% } else if(pkg.jenis === 'Protocol Pass') { %><i class="fas fa-ticket-alt text-warning"></i>
+                                        <% } else { %><i class="fas fa-calendar-check text-success"></i><% } %>
+                                    </div>
+
+                                    <h4 class="fw-bold text-dark mb-1" style="font-size: 1.3rem;"><%= pkg.jenis %></h4>
+                                    <p class="text-muted small mb-4 fw-bold"><%= pkg.paket %> Package</p>
+                                    
+                                    <h2 class="fw-bold mb-4" style="font-weight: 900 !important; color: #111;">Rp <%= parseInt(pkg.harga).toLocaleString('id-ID') %></h2>
+                                    
+                                    <div class="mb-4" style="font-size: 0.85rem; color: #555; background: #f8f9fa; padding: 10px; border-radius: 8px;">
+                                        <i class="fas fa-check-circle text-success me-2"></i> Pembayaran via <b><%= pkg.metode_pembayaran %></b>
+                                    </div>
+                                    
+                                    <!-- Aksi Beli Simulasi -->
+                                    <button class="btn w-100 fw-bold" style="background: #111; color: var(--neon-yellow); padding: 12px; border-radius: 8px; transition: 0.3s;" onmouseover="this.style.background='var(--neon-yellow)'; this.style.color='#111';" onmouseout="this.style.background='#111'; this.style.color='var(--neon-yellow)';" onclick="alert('Mengarahkan ke halaman pembayaran <%= pkg.metode_pembayaran %>...')">
+                                        <i class="fas fa-shopping-cart me-2"></i> Beli Sekarang
+                                    </button>
+                                </div>
+                            </div>
+                        <% }) %>
+                    <% } else { %>
+                        <div class="col-12 text-center py-5 text-muted" data-aos="fade-up">
+                            <i class="fas fa-store-slash fs-1 mb-3"></i>
+                            <h4>Pusat Pembelian Lisensi Sedang Ditutup.</h4>
+                            <p>Belum ada paket yang tersedia saat ini.</p>
+                        </div>
+                    <% } %>
+                </div>
+            </section>
+            
+            <!-- 9. FOOTER -->
+            <footer class="endcore-footer">
+                <div class="footer-logo-wrap">
+                    <span class="footer-logo-sub">ENDCORE</span>
+                    <span class="footer-logo-main">SYSTEM</span>
+                </div>
+                
+                <div class="footer-links">
+                    <a href="#">Ketentuan Layanan</a>
+                    <span class="separator">|</span>
+                    <a href="#">Kebijakan Privasi</a>
+                    <span class="separator">|</span>
+                    <a href="#">Hubungi Kami</a>
+                </div>
+                
+                <div class="footer-legal">
+                    "PlayStation Family Mark", "PlayStation" and "PS5 logo" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.<br>
+                    Epic, Epic Games, Epic Games Store, the Epic Games Store logo, and Epic Online Services are trademarks and/or registered trademarks of Epic Games. All other trademarks are the property of their respective owners.
+                </div>
+                
+                <div class="footer-copyright">
+                    <div class="footer-logos">
+                        <span class="publisher-logo"><i class="fas fa-play"></i> GRYPHLINE</span>
+                        <span class="publisher-logo"><i class="fas fa-mountain"></i> MOUNTAIN CONTOUR</span>
+                    </div>
+                    <p>© 2022-2026 GRYPHLINE. All Rights Reserved.</p>
+                </div>
+            </footer>
+
+        </main>
+    </div>
+
+    <!-- MODAL REVIEW -->
+    <% chars.forEach(char => { %>
+        <div class="modal fade" id="reviewModal-<%= char.id_char %>" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                    <div class="modal-header border-bottom-0 p-4" style="background: #111; border-bottom: 3px solid var(--neon-yellow) !important;">
+                        <h5 class="modal-title fw-bold text-white"><i class="fas fa-comment-dots me-2" style="color: var(--neon-yellow);"></i> EVALUASI OPERATOR: <%= char.nama %></h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4 bg-light">
+                        <form action="/review-char/<%= char.id_char %>" method="POST">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold text-muted small">Tulis Laporan Operasi Taktis Anda</label>
+                                <textarea class="form-control" name="komentar" rows="5" placeholder="Ketik ulasan, pengalaman, atau rekomendasi tim..." required style="border-radius: 8px; border: 1px solid #ccc;"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-dark w-100 fw-bold py-3 mt-2" style="border-radius: 8px; background: #111;">SIMPAN LAPORAN</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <% }) %>
+
+    <!-- MODAL GAME LAUNCHER -->
+    <div class="modal fade" id="gameLauncherModal" tabindex="-1" data-bs-theme="dark">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content bg-dark text-white" style="border: 1px solid #444; border-radius: 12px; box-shadow: 0 0 50px rgba(0,0,0,0.5);">
+                <div class="modal-header border-bottom border-secondary p-4">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-rocket text-warning me-2"></i> ENDCORE SYSTEM LAUNCHER</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-5 text-center">
+                    <img src="https://placehold.co/600x250/111/ffea00?text=ARKNIGHTS:+ENDFIELD+CLIENT" class="img-fluid rounded mb-4 shadow" alt="Game Banner">
+                    <h3 class="fw-bold mb-3">Arknights: Endfield</h3>
+                    <p class="text-muted mb-4">Memeriksa integritas file lokal dan menghubungkan ke server utama...</p>
+                    
+                    <div class="progress mb-4" style="height: 25px; border-radius: 20px; background: #222;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning text-dark fw-bold" style="width: 100%">SYSTEM READY</div>
+                    </div>
+
+                    <div class="d-flex justify-content-center gap-3 mt-5">
+                        <button class="btn btn-outline-light rounded-pill px-4 fw-bold" data-bs-dismiss="modal">BATAL</button>
+                        <button class="btn btn-warning text-dark rounded-pill px-5 fw-bold fs-5 shadow" onclick="alert('Client Game Sedang Diluncurkan...');"><i class="fas fa-play me-2"></i> MASUK GAME</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
+    <script>
+        AOS.init({ once: false, mirror: true, duration: 800, offset: 100 });
+
+        const loadingScreen = document.getElementById('loading-screen');
+        const bgMusic = document.getElementById('bgMusic');
+        const bgmIcon = document.getElementById('bgmIcon');
+        const bgmText = document.getElementById('bgmText');
+        const wipeTransition = document.getElementById('wipe-transition');
+        const sysLogs = document.getElementById('sysLogs');
+        const progressText = document.getElementById('progress-text');
+        const progressBar = document.getElementById('progress-bar');
+        const mainWrapper = document.getElementById('main-wrapper');
+        
+        const currentUserName = "<%- locals.user ? locals.user.username : 'GUEST' %>";
+
+        const logs = [
+            "STARTING SECURE CONNECTION...",
+            "AUTHENTICATING ID: 2410010355...",
+            "USER: " + currentUserName.toUpperCase() + " [VERIFIED]",
+            "MOUNTING ENDCORE DATABASE..."
+        ];
+
+        window.onload = () => {
+            let logIndex = 0;
+            const logInterval = setInterval(() => {
+                if (logIndex < logs.length) {
+                    const p = document.createElement('div');
+                    p.className = 'log-line';
+                    p.innerText = '> ' + logs[logIndex];
+                    sysLogs.appendChild(p);
+                    logIndex++;
+                } else { clearInterval(logInterval); }
+            }, 300);
+
+            let progress = 0;
+            const loadingInterval = setInterval(() => {
+                progress += Math.floor(Math.random() * 5) + 2; 
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(loadingInterval);
+                    
+                    setTimeout(() => {
+                        loadingScreen.style.display = 'none';
+                        mainWrapper.style.visibility = 'visible';
+                        mainWrapper.style.opacity = '1';
+                        
+                        wipeTransition.style.left = '0';
+                        setTimeout(() => { 
+                            wipeTransition.style.opacity = '0'; 
+                            setTimeout(() => { 
+                                wipeTransition.style.display = 'none'; 
+                                window.scrollTo(0, 0); 
+                                AOS.refresh(); 
+
+                                // PERBAIKAN BGM AUTOPLAY: Memaksa audio berputar saat loading selesai
+                                bgMusic.volume = 0.4;
+                                let playPromise = bgMusic.play();
+                                if (playPromise !== undefined) {
+                                    playPromise.then(_ => {
+                                        bgmIcon.classList.remove('fa-volume-mute');
+                                        bgmIcon.classList.add('fa-volume-up');
+                                        bgmText.innerText = "Suara: Aktif";
+                                        isAudioInitialized = true;
+                                    }).catch(error => {
+                                        console.log("Autoplay dicegah oleh browser. Menunggu interaksi klik user.");
+                                    });
+                                }
+                            }, 800); 
+                        }, 600); 
+                    }, 500);
+                }
+                progressText.innerText = progress + '%';
+                progressBar.style.width = progress + '%';
+            }, 30);
+        };
+
+        let isAudioInitialized = false;
+        document.body.addEventListener('click', function initAudioOnce() {
+            if (!isAudioInitialized && bgMusic.paused) {
+                bgMusic.volume = 0.4;
+                bgMusic.play().catch(e => console.log("Audio Error:", e));
+                bgmIcon.classList.remove('fa-volume-mute');
+                bgmIcon.classList.add('fa-volume-up');
+                bgmText.innerText = "Suara: Aktif";
+                isAudioInitialized = true;
+            }
+            document.body.removeEventListener('click', initAudioOnce);
+        }, { once: true });
+
+        function toggleAudio() {
+            if (bgMusic.paused) {
+                bgMusic.play();
+                bgmIcon.classList.remove('fa-volume-mute');
+                bgmIcon.classList.add('fa-volume-up');
+                bgmText.innerText = "Suara: Aktif";
+                isAudioInitialized = true;
+            } else {
+                bgMusic.pause();
+                bgmIcon.classList.remove('fa-volume-up');
+                bgmIcon.classList.add('fa-volume-mute');
+                bgmText.innerText = "Suara: Nonaktif";
+            }
+        }
+
+        function setFilter(type, value) {
+            if(type === 'role') {
+                activeRole = value;
+                document.getElementById('current-role').innerText = value;
+            } else {
+                activeElement = value;
+                document.getElementById('current-element').innerText = value;
+            }
+            applyFilters();
+        }
+
+        let activeRole = 'Semua';
+        let activeElement = 'Semua';
+        function applyFilters() {
+            const cards = document.querySelectorAll('.operator-card-item');
+            cards.forEach(card => {
+                const role = card.getAttribute('data-role') || '';
+                const element = card.getAttribute('data-element') || '';
+                
+                const matchRole = (activeRole === 'Semua' || role.toLowerCase() === activeRole.toLowerCase());
+                const matchElement = (activeElement === 'Semua' || element.toLowerCase() === activeElement.toLowerCase());
+                
+                if(matchRole && matchElement) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            AOS.refresh();
+        }
+
+        function showSemuaOperator() {
+            document.getElementById('operator').style.display = 'none';
+            document.getElementById('semua-operator').style.display = 'block';
+            window.scrollTo(0, document.getElementById('semua-operator').offsetTop);
+            AOS.refresh();
+        }
+
+        function closeAllOperatorView() {
+            document.getElementById('semua-operator').style.display = 'none';
+            document.getElementById('operator').style.display = 'block';
+            AOS.refresh();
+        }
+
+        function scrollToOperator() {
+            closeAllOperatorView();
+            setTimeout(() => {
+                window.scrollTo({ top: document.getElementById('operator').offsetTop, behavior: 'smooth' });
+            }, 10);
+        }
+
+        async function likeOperator(charId, btnElement) {
+            try {
+                let response = await fetch('/like-char/' + charId, { method: 'POST' });
+                
+                if (response.redirected && response.url.includes('/login')) {
+                    alert('Akses Ditolak: Anda harus Login untuk memberikan Like.');
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                if (response.ok) {
+                    let data = await response.json().catch(() => null); 
+                    
+                    let countSpan = btnElement.querySelector('.like-count');
+                    let icon = btnElement.querySelector('.fa-heart');
+
+                    if (data && data.totalLikes !== undefined) {
+                        countSpan.innerText = `Like (${data.totalLikes})`;
+                        if (data.status === 'liked') {
+                            icon.classList.add('text-danger');
+                            icon.classList.remove('text-secondary', 'text-white');
+                        } else if (data.status === 'unliked') {
+                            icon.classList.remove('text-danger');
+                            icon.classList.add('text-secondary'); 
+                        }
+                    } else {
+                        let currentLikes = parseInt(countSpan.innerText.replace(/\D/g, '')) || 0;
+                        if (btnElement.getAttribute('data-liked') === 'true') {
+                            btnElement.setAttribute('data-liked', 'false');
+                            icon.classList.remove('text-danger');
+                            icon.style.color = '#ccc'; 
+                            countSpan.innerText = `Like (${Math.max(0, currentLikes - 1)})`;
+                        } else {
+                            btnElement.setAttribute('data-liked', 'true');
+                            icon.style.color = ''; 
+                            icon.classList.add('text-danger');
+                            countSpan.innerText = `Like (${currentLikes + 1})`;
+                        }
+                    }
+
+                    btnElement.style.transform = 'scale(1.1)';
+                    setTimeout(() => { btnElement.style.transform = 'scale(1)'; }, 200);
+                }
+            } catch (error) { 
+                console.error('Error:', error); 
+            }
+        }
+        
+        window.addEventListener('DOMContentLoaded', (event) => {
+            let scrollpos = sessionStorage.getItem('scrollPosition');
+            if (scrollpos) { window.scrollTo(0, parseInt(scrollpos)); sessionStorage.removeItem('scrollPosition'); }
+            
+            document.querySelector('a[href="#gameplay"]')?.addEventListener('click', function(e) {
+                e.preventDefault();
+                closeAllOperatorView();
+                let target = document.getElementById('gameplay') || document.getElementById('beranda');
+                window.scrollTo({ top: target.offsetTop, behavior: 'smooth' });
+            });
+        });
+
+        let currentScrollIndex = 0;
+        const totalChars = parseInt("<%= locals.chars ? chars.length : 0 %>");
+        
+        function scrollAvatar(direction) {
+            const track = document.getElementById('avatarTrack');
+            const itemHeight = 105; 
+            const maxScroll = Math.max(0, totalChars - 3); 
+
+            if (direction === 'up' && currentScrollIndex > 0) { currentScrollIndex--; } 
+            else if (direction === 'down' && currentScrollIndex < maxScroll) { currentScrollIndex++; }
+            track.style.transform = `translateY(-${currentScrollIndex * itemHeight}px)`;
+        }
+
+        function showOperator(index) {
+            document.querySelectorAll('.char-data-pane').forEach(el => {
+                el.classList.remove('d-block-custom', 'active-pane'); 
+                el.classList.add('d-none-custom');
+            });
+            document.querySelectorAll('.avatar-wrapper').forEach(el => el.classList.remove('active'));
+            
+            const targetPane = document.getElementById('data-' + index);
+            targetPane.classList.remove('d-none-custom');
+            void targetPane.offsetWidth; 
+            targetPane.classList.add('d-block-custom', 'active-pane');
+            
+            document.getElementById('ava-wrap-' + index).classList.add('active');
+        }
+
+        const sections = document.querySelectorAll('.content-section');
+        const navItems = document.querySelectorAll('.sb-menu .sb-item');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (scrollY >= (sectionTop - sectionHeight / 3)) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            if (document.getElementById('semua-operator').style.display === 'block') {
+                current = 'operator'; 
+            }
+
+            navItems.forEach(item => {
+                item.classList.remove('active');
+                if (item.getAttribute('href') === `#${current}`) {
+                    item.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

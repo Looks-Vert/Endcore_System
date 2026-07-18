@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Endcore System</title>
+    
+    <!-- Bootstrap & FontAwesome -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            /* Latar belakang blur ala halaman utama */
+            background: linear-gradient(rgba(255,255,255,0.5), rgba(255,255,255,0.8)), url('https://endfield.gryphline.com/images/bg-placeholder.jpg') center/cover no-repeat;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Modal Container ala Gryphline */
+        .login-modal {
+            background-color: #2a2a2a;
+            width: 100%;
+            max-width: 450px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            overflow: hidden;
+            color: #fff;
+            position: relative;
+        }
+
+        /* Header Modal */
+        .modal-header-custom {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 25px 20px;
+            position: relative;
+            border-bottom: 1px solid #333;
+        }
+        .modal-header-custom h2 {
+            font-size: 1.5rem;
+            font-weight: 900;
+            font-style: italic;
+            letter-spacing: 1px;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-close-custom {
+            position: absolute;
+            right: 20px;
+            background: #444;
+            color: #aaa;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .btn-close-custom:hover { background: #555; color: #fff; }
+
+        /* Form Body */
+        .modal-body-custom { padding: 30px; }
+        
+        .input-group-custom {
+            background: #444;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            margin-bottom: 20px;
+            transition: 0.3s;
+        }
+        .input-group-custom:focus-within { background: #555; box-shadow: 0 0 0 2px #8bc34a; }
+        .input-group-custom i { color: #aaa; font-size: 1.1rem; }
+        .input-group-custom input {
+            background: transparent;
+            border: none;
+            color: #fff;
+            padding: 15px;
+            width: 100%;
+            outline: none;
+        }
+        .input-group-custom input::placeholder { color: #888; }
+        
+        .btn-login {
+            background-color: #8bb14a; /* Warna hijau khas Gryphline login */
+            color: #000;
+            width: 100%;
+            border: none;
+            padding: 15px;
+            border-radius: 6px;
+            font-weight: 900;
+            font-size: 1.1rem;
+            cursor: pointer;
+            position: relative;
+            transition: 0.3s;
+            margin-bottom: 20px;
+        }
+        .btn-login:hover { background-color: #9cc25b; }
+        /* Aksen segitiga hitam di tombol */
+        .btn-login::after {
+            content: ''; position: absolute; bottom: 5px; right: 5px;
+            border-bottom: 10px solid #000; border-left: 10px solid transparent;
+        }
+
+        /* Links Bawah */
+        .auth-links { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 40px; }
+        .auth-links a { color: #ccc; text-decoration: none; transition: 0.3s; }
+        .auth-links a:hover { color: #fff; text-decoration: underline; }
+
+        /* Social Login */
+        .social-login {
+            display: flex; justify-content: center; gap: 25px;
+            border-top: 1px solid #333; padding-top: 25px;
+        }
+        .social-icon {
+            width: 40px; height: 40px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; color: #fff; cursor: pointer; transition: 0.3s; text-decoration: none;
+        }
+        .social-icon.google { color: #db4437; }
+        .social-icon.apple { color: #fff; }
+        .social-icon.facebook { color: #1877f2; }
+        .social-icon:hover { transform: scale(1.1); filter: brightness(1.2); }
+    </style>
+</head>
+<body>
+
+    <div class="login-modal">
+        <div class="modal-header-custom">
+            <h2><i class="fas fa-layer-group"></i> GRYPHLINE</h2>
+            <a href="/" class="btn-close-custom"><i class="fas fa-times"></i></a>
+        </div>
+        
+        <div class="modal-body-custom">
+            <!-- Form diarahkan ke endpoint backend kamu -->
+            <form action="/login" method="POST">
+                <div class="input-group-custom">
+                    <i class="fas fa-envelope"></i>
+                    <!-- Asumsi input login menggunakan email -->
+                    <input type="email" name="email" placeholder="Masukkan alamat email" required>
+                </div>
+                
+                <div class="input-group-custom">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" name="password" id="passInput" placeholder="Masukkan kata sandi" required>
+                    <i class="fas fa-eye-slash" id="togglePass" style="cursor: pointer;"></i>
+                </div>
+                
+                <button type="submit" class="btn-login">Login</button>
+                
+                <div class="auth-links">
+                    <a href="/register">Daftar</a>
+                    <a href="#">Lupa kata sandi?</a>
+                </div>
+            </form>
+
+            <div class="social-login">
+                <a href="#" class="social-icon google"><i class="fab fa-google"></i></a>
+                <a href="#" class="social-icon apple"><i class="fab fa-apple"></i></a>
+                <a href="#" class="social-icon facebook"><i class="fab fa-facebook"></i></a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Tampilkan/Sembunyikan Password -->
+    <script>
+        const togglePass = document.getElementById('togglePass');
+        const passInput = document.getElementById('passInput');
+
+        togglePass.addEventListener('click', function() {
+            const type = passInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passInput.setAttribute('type', type);
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
+        });
+    </script>
+</body>
+</html>
