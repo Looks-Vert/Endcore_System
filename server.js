@@ -23,21 +23,23 @@ app.use(express.static('public'));
 app.use(fileUpload()); 
 app.use(session({ secret: 'endcore_secret_key', resave: false, saveUninitialized: true }));
 
-// KONEKSI DATABASE
-// KONEKSI DATABASE CLOUD AIVEN
+// KONEKSI DATABASE CLOUD AIVEN (Menggunakan Environment Variables dari Railway)
 const db = mysql.createConnection({
-    host: 'MASUKKAN_HOST_AIVEN_KAMU_DISINI',
-    port: 25060,
-    user: 'avnadmin',
-    password: 'MASUKKAN_PASSWORD_AIVEN_KAMU_DISINI',
-    database: 'defaultdb',
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
     ssl: {
         rejectUnauthorized: false
     }
 });
 
 db.connect((err) => {
-    if (err) throw err;
+    if (err) {
+        console.error('Gagal koneksi ke database:', err.message);
+        return;
+    }
     console.log('Terkoneksi ke database arkcore_404');
 });
 
