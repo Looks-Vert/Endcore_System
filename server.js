@@ -24,11 +24,16 @@ app.use(fileUpload());
 app.use(session({ secret: 'endcore_secret_key', resave: false, saveUninitialized: true }));
 
 // KONEKSI DATABASE
+// KONEKSI DATABASE CLOUD AIVEN
 const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: '',
-    database: 'arkcore_404'
+    host: 'MASUKKAN_HOST_AIVEN_KAMU_DISINI',
+    port: 25060,
+    user: 'avnadmin',
+    password: 'MASUKKAN_PASSWORD_AIVEN_KAMU_DISINI',
+    database: 'defaultdb',
+    ssl: {
+        rejectUnauthorized: false
+    }
 });
 
 db.connect((err) => {
